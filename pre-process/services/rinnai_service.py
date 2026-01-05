@@ -43,3 +43,6 @@ class RinnaiService:
                 )
 
         log.info("saved history event %s", serial_num)
+
+        # TODO data parse
+        # TODO insert into parsed table
