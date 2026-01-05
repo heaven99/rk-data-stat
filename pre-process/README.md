@@ -14,3 +14,10 @@ source venv/bin/activate
 ```shell
 pip install -r requirements.txt
 ```
+
+# M/W password 셋업
+```shell
+export MQTT_PASSWORD=xxxx
+export DB_PASSWORD_CK_STAT_DB=abcd1234
+export DB_PASSWORD_CK_HISTORY_DB=abcd1234
+```

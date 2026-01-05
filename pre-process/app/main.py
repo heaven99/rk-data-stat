@@ -1,8 +1,13 @@
 from handlers.mqtt_handler import MQTTHandler
+from common.config import load_config
+from modules.postgresql import init_postgres_all
 from common.logger import (
     register_winston_levels,
     setup_basic_console_logger,
 )
+
+config = load_config()
+init_postgres_all(config["databases"])
 
 def main():
     register_winston_levels()

@@ -1,0 +1,24 @@
+mqtt:
+  host: 192.168.0.249
+  port: 1883
+
+databases:
+  stat:
+    engine: postgresql
+    host: 127.0.0.1
+    port: 5432
+    dbname: ck_stat_db
+    user: ckstack
+    pool:
+      min: 1
+      max: 5
+
+  history:
+    engine: postgresql
+    host: 127.0.0.1
+    port: 5432
+    dbname: ck_history_db
+    user: ckstack
+    pool:
+      min: 1
+      max: 10
