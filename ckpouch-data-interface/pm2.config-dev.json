@@ -1,0 +1,17 @@
+{
+    "apps": [
+        {
+            "name": "ckpouch-data-interface",
+            "script": "ckpouch",
+            "cwd": "/home/ckstack/rk-data-stat/ckpouch-data-interface",
+            "args": "-c ckpouch-dev.conf",
+            "env": {
+                "NODE_PATH": "./node_modules"
+            },
+            "watch": true,
+            "autorestart": true,
+            "max_memory_restart": "500M",
+            "log_file": "/dev/null"
+        }
+    ]
+}

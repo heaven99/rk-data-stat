@@ -1,0 +1,3 @@
+{
+    "/api/sync/device/list":    { "POST": { "event": "sync-device-list",           "desc": "Device list sync" } }
+}
