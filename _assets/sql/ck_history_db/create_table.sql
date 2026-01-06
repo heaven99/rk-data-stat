@@ -188,7 +188,7 @@ CREATE TABLE public.tbl_his_inf_parsed (
    circular_unit_diagnosis_state                    public.enum_result NOT NULL DEFAULT '시작전',
    circular_unit_diagnosis_error                    CHAR(2) NOT NULL DEFAULT 'FF',
    fan_unit_diagnosis_state                         public.enum_result NOT NULL DEFAULT '시작전',
-   fan_unit_diagnosis_error                         CHAR(2) NOT NULL DEFAULT 'FF',
+   fan_error                                        CHAR(2) NOT NULL DEFAULT 'FF',
    emission_block_error                             CHAR(2) NOT NULL DEFAULT 'FF',
    comm_state_diagnosis_state                       public.enum_result NOT NULL DEFAULT '시작전',
    comm_state_diagnosis_error                       CHAR(2) NOT NULL DEFAULT 'FF',
@@ -269,7 +269,7 @@ COMMENT ON COLUMN public.tbl_his_inf_parsed.ignition_unit_diagnosis_error       
 COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_state                 IS '순환부 진단 상태'
 COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_error                 IS '순환부 진단 에러'
 COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_unit_diagnosis_state                      IS '송풍장치 진단'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_unit_diagnosis_error                      IS '송풍장치 에러'
+COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_error                                     IS 'FAN 에러'
 COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_block_error                          IS '배기폐쇄 에러'
 COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_state                    IS '통신 상태 진단 상태'
 COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_error                    IS '통신 상태 진단 에러'
