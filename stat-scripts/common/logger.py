@@ -8,9 +8,10 @@ CK project logging core
 """
 
 import logging
+import sys
 from typing import Dict, List, Optional
 
-from common.config import load_config  # 👈 config 연동
+from common.config import load_config  # config 연동
 
 _INITIALIZED = False
 _DEFAULT_LEVEL: Optional[str] = None
@@ -45,11 +46,8 @@ def _load_default_level() -> str:
 
     try:
         config = load_config()
-        _DEFAULT_LEVEL = (
-            config.get("log", {}).get("default-level", "info")
-        )
+        _DEFAULT_LEVEL = config.get("log", {}).get("default-level", "info")
     except Exception:
-        # config 로딩 실패 시 안전 fallback
         _DEFAULT_LEVEL = "info"
 
     return _DEFAULT_LEVEL
@@ -94,16 +92,13 @@ class CKLogger:
         self._logger.propagate = False
 
         # -------------------------------------------------
-        # Level 결정 로직 (FIXED)
+        # Logger level 결정
         # -------------------------------------------------
         if level is None:
-            # config default-level은 항상 적용
             default_level = _load_default_level()
             self._logger.setLevel(self._levels[default_level])
         else:
-            # 명시적 override
             self._logger.setLevel(self._levels[level])
-
 
         # -------------------------------------------------
         # Handler 처리
@@ -113,18 +108,31 @@ class CKLogger:
             for h in handlers:
                 self._logger.addHandler(h)
 
-        # 기본 console handler 보장
+        # 기본 console handler 세팅
         if not self._logger.handlers:
-            handler = logging.StreamHandler()
             formatter = logging.Formatter(
                 "%(asctime)s.%(msecs)03d [%(levelname)5s] %(message)s",
                 "%m/%d %H:%M:%S",
             )
-            handler.setFormatter(formatter)
-            self._logger.addHandler(handler)
+
+            # stdout: info 이하 (debug, verbose, silly 포함)
+            stdout_handler = logging.StreamHandler(sys.stdout)
+            stdout_handler.setLevel(self._levels["info"])
+            stdout_handler.setFormatter(formatter)
+
+            # stderr: warn 이상 (warn, error, alarm)
+            stderr_handler = logging.StreamHandler(sys.stderr)
+            stderr_handler.setLevel(self._levels["warn"])
+            stderr_handler.setFormatter(formatter)
+
+            self._logger.addHandler(stdout_handler)
+            self._logger.addHandler(stderr_handler)
 
         self._bind_methods()
 
+    # -------------------------------------------------
+    # Custom level methods
+    # -------------------------------------------------
     def _bind_methods(self):
         for name, lvl in self._levels.items():
 
