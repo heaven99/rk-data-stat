@@ -9,6 +9,7 @@
 CREATE TABLE public.tbl_device_sync_his (
     sync_date       TIMESTAMP,
     file_path       VARCHAR(255) DEFAULT '',
+    device_count    INTEGER DEFAULT 0,
     expire_date     TIMESTAMP,
     delete_date     TIMESTAMP,
     c_date          TIMESTAMP
@@ -20,6 +21,7 @@ COMMENT ON TABLE public.tbl_device_sync_his IS 'device sync hist';
 -- column comments
 COMMENT ON COLUMN public.tbl_device_sync_his.sync_date IS 'backup/sync datetime copied from source table';
 COMMENT ON COLUMN public.tbl_device_sync_his.file_path IS 'file path';
+COMMENT ON COLUMN public.tbl_device_sync_his.device_count IS 'number of devices in the sync';
 COMMENT ON COLUMN public.tbl_device_sync_his.expire_date IS 'file expire date. if null, never expire';
 COMMENT ON COLUMN public.tbl_device_sync_his.delete_date IS 'file delete date. if null, not deleted yet';
 COMMENT ON COLUMN public.tbl_device_sync_his.c_date IS 'create date';

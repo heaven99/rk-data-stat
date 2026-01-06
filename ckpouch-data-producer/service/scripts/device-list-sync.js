@@ -72,13 +72,13 @@ module.exports = async (ctx, src, packet, listener) => {
     log.debug(JSON.stringify(conf));
 
     // execute proxy
-    let _body = JSON.stringify({ list: selectInfo.data });
+    let _body = JSON.stringify({ list: selectInfo.data, date: utils.timestampToString(Date.now(), 'YYYYMMDDHHmm') });
 
     const proxyOptions = {
         // hostname: 'http://localhost:11003',
         hostname: conf.stat.interface.host,
         port: conf.stat.interface.port,
-        path: sConf.API_SYNC_PATH,
+        path: `${sConf.API_SYNC_PATH}?tid=${tid}`,
         method: sConf.API_SYNC_METHOD,
         headers: {
             // 'Content-Type': 'application/json',
