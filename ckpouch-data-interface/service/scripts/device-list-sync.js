@@ -16,7 +16,7 @@ const sState = {};
 module.exports = async (ctx, src, packet, listener) => {
     const { log, modules, utils } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
-    const op = 'POST /api/sync/device/list -';
+    const op = 'POST /api/device/list/sync -';
     const lhd = `[${src}:${tid}] ${op}`;
     log.info(`${lhd} >> start sync device list`);
 
