@@ -46,10 +46,10 @@ def init_stat_time():
         STAT_TIME_DT = now
         STAT_TIME_STR = now.strftime("%Y%m%d%H%M%S")
     
-    WINDOW_START = STAT_TIME_DT
-    WINDOW_END = STAT_TIME_DT + timedelta(hours=1)
+    WINDOW_START = STAT_TIME_DT - timedelta(hours=1)
+    WINDOW_END = STAT_TIME_DT
 
-    log.info("%sset stat time. parameter [%s]. stat time [%s]", lhd, arg, STAT_TIME_STR)
+    log.info("%sset stat time. parameter [%s]. stat time [%s], window start [%s], window end [%s]", lhd, arg, STAT_TIME_STR, WINDOW_START, WINDOW_END)
 
 def parse_stat_datetime(yyyymmddhhmmss: str | None) -> tuple[str, datetime]:
     """
@@ -168,6 +168,9 @@ def main():
 
     fetch_start = time.monotonic()
     devices = fetch_device_list()
+    # devices = [
+    #     { "serial_num": "CK:BO:IL:ER:00:01" }
+    # ]
     fetch_elapsed = time.monotonic() - fetch_start
 
     log.info(
