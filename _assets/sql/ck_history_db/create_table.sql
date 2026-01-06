@@ -117,6 +117,10 @@ DROP TABLE public.tbl_his_inf_parsed;
 CREATE TABLE public.tbl_his_inf_parsed (
    serial_num                                       CHAR(17) NOT NULL,
    c_date                                           TIMESTAMP NOT NULL,
+   group_cd                                         CHAR(3) NOT NULL,
+   group_type_cd                                    CHAR(2) NOT NULL,
+   lat                                              double precision,
+   lon                                              double precision,
    power_status                                     public.enum_on_off NOT NULL DEFAULT 'OFF',
    test_status                                      public.enum_on_off NOT NULL DEFAULT 'OFF',
    heating_status                                   public.enum_on_off NOT NULL DEFAULT 'OFF',
@@ -198,6 +202,10 @@ CREATE TABLE public.tbl_his_inf_parsed (
 COMMENT ON TABLE public.tbl_his_inf_parsed IS 'device history parsed information table';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.serial_num IS 'device serial number';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.c_date IS 'create_date';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.group_cd                                      IS '장비그룹'
+COMMENT ON COLUMN public.tbl_his_inf_parsed.group_type_cd                                 IS '모델타입'
+COMMENT ON COLUMN public.tbl_his_inf_parsed.lat                                           IS '위도'
+COMMENT ON COLUMN public.tbl_his_inf_parsed.lon                                           IS '경도'
 COMMENT ON COLUMN public.tbl_his_inf_parsed.power_status                                  IS '전원상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.test_status                                   IS '시운전';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_status                                IS '난방 상태';
