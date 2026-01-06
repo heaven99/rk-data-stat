@@ -10,7 +10,8 @@ CREATE TABLE public.tbl_stat_src (
     stat_date  CHAR(14) NOT NULL,
     serial_num CHAR(17) NOT NULL,
     data_type  VARCHAR(16) NOT NULL,
-    value      DOUBLE PRECISION
+    value      DOUBLE PRECISION,
+    c_date     TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 -- add comment for column
@@ -19,6 +20,7 @@ COMMENT ON COLUMN public.tbl_stat_src.stat_date IS 'statistic date. YYYYMMDDHHmm
 COMMENT ON COLUMN public.tbl_stat_src.serial_num IS 'boiler serial number';
 COMMENT ON COLUMN public.tbl_stat_src.data_type IS 'statistic type';
 COMMENT ON COLUMN public.tbl_stat_src.value IS 'statistic value';
+COMMENT ON COLUMN public.tbl_stat_src.c_date IS 'creation datetime';
 
 -- TODO index query 별도 분리
 -- ad index
