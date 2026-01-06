@@ -28,6 +28,8 @@ source venv/bin/activate
 
 ## M/W password 셋업
 
+M/W 패스워드는 환경변수로 처리한다.
+
 ```shell
 export DB_PASSWORD_CK_STAT_DB=xxxx
 export DB_PASSWORD_CK_HISTORY_DB=xxxx
