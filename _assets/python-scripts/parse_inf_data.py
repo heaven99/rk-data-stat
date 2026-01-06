@@ -43,7 +43,7 @@ BOILER_DATA_MAP = [
     {"key": "currentRoomTemp",              "offset": 17,  "length":  2},
     {"key": "awayState",                    "offset": 19,  "length":  1},
     {"key": "errorState",                   "offset": 20,  "length":  1},
-    {"key": "errorData",                    "offset": 23,  "length":  3},
+    {"key": "errorData",                    "offset": 21,  "length":  3},
     {"key": "heatingEcoDetected",           "offset": 24,  "length":  1},
     {"key": "waterFlowDetected",            "offset": 25,  "length":  1},
     {"key": "modeState",                    "offset": 26,  "length":  1},
@@ -401,8 +401,24 @@ def parse_payload(payload: str) -> dict:
     }
 
 
+# def fetch_src_rows(conn, yyyymmdd: str):
+#     """해당 일자 00:00:00~23:59:59"""
+#     dt = datetime.strptime(yyyymmdd, "%Y%m%d")
+#     t0 = dt
+#     t1 = dt + timedelta(days=1)
+#
+#     sql = f"""
+#         SELECT id, device_id, serial_num, topic, orig_data, c_date
+#         FROM {SRC_TABLE}
+#         WHERE c_date >= %s AND c_date < %s
+#           AND orig_data IS NOT NULL
+#     """
+#     with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+#         cur.execute(sql, (t0, t1))
+#         for row in cur:
+#             yield row
+
 def fetch_src_rows(conn, yyyymmdd: str):
-    """해당 일자 00:00:00~23:59:59"""
     dt = datetime.strptime(yyyymmdd, "%Y%m%d")
     t0 = dt
     t1 = dt + timedelta(days=1)
@@ -413,7 +429,10 @@ def fetch_src_rows(conn, yyyymmdd: str):
         WHERE c_date >= %s AND c_date < %s
           AND orig_data IS NOT NULL
     """
-    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
+
+    # ✅ 서버사이드 커서
+    with conn.cursor(name="his_inf_cursor", cursor_factory=psycopg2.extras.DictCursor) as cur:
+        cur.itersize = 5000  # ✅ 서버에서 5000개씩 끊어서 가져옴
         cur.execute(sql, (t0, t1))
         for row in cur:
             yield row
@@ -470,13 +489,15 @@ def main():
         print("Invalid date format. Use YYYYMMDD")
         sys.exit(1)
 
-    conn = psycopg2.connect(PG_DSN)
-    conn.autocommit = False
+    conn_r = psycopg2.connect(PG_DSN)  # ✅ read 전용
+    conn_w = psycopg2.connect(PG_DSN)  # ✅ write 전용
+    conn_w.autocommit = False
     inserted = 0
     batch = []
+    seen = 0  # 진행용
 
     try:
-        for row in fetch_src_rows(conn, yyyymmdd):
+        for row in fetch_src_rows(conn_r, yyyymmdd):
             serial_num = require_str(row["serial_num"]).strip()
             topic = require_str(row["topic"])
             group_cd, group_type_cd = parse_topic(topic)
@@ -515,24 +536,29 @@ def main():
                 **parsed
             }
             batch.append(out)
+            seen += 1
 
             if len(batch) >= 5000:
-                inserted += insert_parsed(conn, batch)
+                inserted += insert_parsed(conn_w, batch)
                 batch.clear()
-                conn.commit()
+                conn_w.commit()
+
+                # ✅ 배치 단위로만 로그 (원하면 삭제 가능)
+                print(f"[{yyyymmdd}] scanned={seen:,} inserted={inserted:,}")
 
         if batch:
-            inserted += insert_parsed(conn, batch)
-            conn.commit()
+            inserted += insert_parsed(conn_w, batch)
+            conn_w.commit()
 
         print(f"OK - inserted rows: {inserted}")
 
     except Exception as e:
-        conn.rollback()
+        conn_w.rollback()  # ✅ write 커넥션만 롤백
         print(f"FAILED: {e}")
         raise
     finally:
-        conn.close()
+        conn_r.close()
+        conn_w.close()
 
 
 if __name__ == "__main__":
