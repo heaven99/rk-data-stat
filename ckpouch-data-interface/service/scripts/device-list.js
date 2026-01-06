@@ -47,7 +47,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const selectDeviceSyncHisFilter = [{ col: 'delete_date', op: 'IS', val: null }];
 
     // set filter
-    if (filter.date?.length === 12) {
+    if (filter?.date?.length === 12) {
         const dateObj = sUtils.convertDateFormatToDate(filter.date);
         const dateStr = utils.timestampToString(dateObj.getTime(), 'YYYY-MM-DD HH:mm:ss');
         selectDeviceSyncHisFilter.push({ col: 'sync_date', op: '=', val: dateStr });

@@ -87,7 +87,9 @@ module.exports = async (ctx, src, packet, listener) => {
     const dateObj = sUtils.convertDateFormatToDate(date);
     const syncDate = utils.timestampToString(dateObj.getTime(), 'YYYY-MM-DD HH:mm:ss');
     const filePath = sUtils.makeFilePath(ctx, date, lhd);
+    const started = Date.now();
     let expireDate = null;
+
     log.debug(`${lhd} created file path from data [${date}] to [${filePath}]`);
     if (!filePath) {
         log.warn(`${lhd} << failed sync device list. invalid file path. skip saving device list to file. date [${date}]`);
@@ -111,7 +113,7 @@ module.exports = async (ctx, src, packet, listener) => {
         }
         
         // list를 JSON 문자열로 변환하여 파일에 저장
-        const jsonData = JSON.stringify(list);
+        const jsonData = JSON.stringify({ date, list });
         fs.writeFileSync(filePath, jsonData, 'utf8');
         log.info(`${lhd} saved device list to file [${filePath}], count [${list.length}]`);
     } catch (error) {
