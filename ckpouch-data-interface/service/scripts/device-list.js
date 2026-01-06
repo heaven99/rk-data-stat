@@ -1,5 +1,5 @@
 // import dependencies
-const fs = require('fs');
+const fs = require('node:fs');
 
 // script conf
 const sConf = {
@@ -25,11 +25,11 @@ const sUtils = {
      * @param {string} input YYYYMMDDHHmm formatted date string
      */
     convertDateFormatToDate: (input) => {
-        const YYYY = parseInt(input.slice(0, 4), 10);
-        const MM = parseInt(input.slice(4, 6), 10) - 1;
-        const DD = parseInt(input.slice(6, 8), 10);
-        const HH = parseInt(input.slice(8, 10), 10);
-        const mm = parseInt(input.slice(10, 12), 10);
+        const YYYY = Number.parseInt(input.slice(0, 4), 10);
+        const MM = Number.parseInt(input.slice(4, 6), 10) - 1;
+        const DD = Number.parseInt(input.slice(6, 8), 10);
+        const HH = Number.parseInt(input.slice(8, 10), 10);
+        const mm = Number.parseInt(input.slice(10, 12), 10);
         return new Date(YYYY, MM, DD, HH, mm);
     },
 };
@@ -47,7 +47,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const selectDeviceSyncHisFilter = [{ col: 'delete_date', op: 'IS', val: null }];
 
     // set filter
-    if (filter.date && filter.date.length === 12) {
+    if (filter.date?.length === 12) {
         const dateObj = sUtils.convertDateFormatToDate(filter.date);
         const dateStr = utils.timestampToString(dateObj.getTime(), 'YYYY-MM-DD HH:mm:ss');
         selectDeviceSyncHisFilter.push({ col: 'sync_date', op: '=', val: dateStr });

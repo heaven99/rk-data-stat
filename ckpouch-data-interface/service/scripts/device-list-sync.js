@@ -1,6 +1,6 @@
 // import dependencies
-const fs = require('fs');
-const path = require('path');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // script conf
 // const sConf = {};
@@ -53,11 +53,11 @@ const sUtils = {
      * @param {string} input YYYYMMDDHHmm formatted date string
      */
     convertDateFormatToDate: (input) => {
-        const YYYY = parseInt(input.slice(0, 4), 10);
-        const MM = parseInt(input.slice(4, 6), 10) - 1;
-        const DD = parseInt(input.slice(6, 8), 10);
-        const HH = parseInt(input.slice(8, 10), 10);
-        const mm = parseInt(input.slice(10, 12), 10);
+        const YYYY = Number.parseInt(input.slice(0, 4), 10);
+        const MM = Number.parseInt(input.slice(4, 6), 10) - 1;
+        const DD = Number.parseInt(input.slice(6, 8), 10);
+        const HH = Number.parseInt(input.slice(8, 10), 10);
+        const mm = Number.parseInt(input.slice(10, 12), 10);
         return new Date(YYYY, MM, DD, HH, mm);
     },
 };
@@ -125,7 +125,7 @@ module.exports = async (ctx, src, packet, listener) => {
     // set expire date
     if (ctx.conf['device-list']?.['retention-days']) {
         let timestamp = Date.now();
-        const retentionDays = parseInt(ctx.conf['device-list']?.['retention-days'], 10);
+        const retentionDays = Number.parseInt(ctx.conf['device-list']?.['retention-days'], 10);
         timestamp += retentionDays * 24 * 60 * 60 * 1000;
         expireDate = utils.timestampToString(timestamp, 'YYYY-MM-DD HH:mm:ss');
         log.info(`${lhd} set expire date [${expireDate}], retension days [${retentionDays}]`);
