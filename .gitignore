@@ -1,2 +1,12 @@
+# OS
+.DS_Store
+
 # IDE
 .vscode
+
+# python
+venv
+__pycache__
+
+# node
+node_modules
