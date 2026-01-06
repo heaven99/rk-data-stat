@@ -195,17 +195,17 @@ CREATE TABLE public.tbl_his_inf_parsed (
    fan_error                                        CHAR(2) NOT NULL DEFAULT 'FF',
    emission_block_error                             CHAR(2) NOT NULL DEFAULT 'FF',
    comm_state_diagnosis_state                       public.enum_result NOT NULL DEFAULT '시작전',
-   comm_state_diagnosis_error                       CHAR(2) NOT NULL DEFAULT 'FF',
+   comm_state_diagnosis_error                       CHAR(2) NOT NULL DEFAULT 'FF'
 );
 
 -- add comment for column
 COMMENT ON TABLE public.tbl_his_inf_parsed IS 'device history parsed information table';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.serial_num IS 'device serial number';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.c_date IS 'create_date';
-COMMENT ON COLUMN public.tbl_his_inf_parsed.group_cd                                      IS '장비그룹'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.group_type_cd                                 IS '모델타입'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.lat                                           IS '위도'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.lon                                           IS '경도'
+COMMENT ON COLUMN public.tbl_his_inf_parsed.group_cd                                      IS '장비그룹';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.group_type_cd                                 IS '모델타입';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.lat                                           IS '위도';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.lon                                           IS '경도';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.power_status                                  IS '전원상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.test_status                                   IS '시운전';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_status                                IS '난방 상태';
@@ -248,39 +248,39 @@ COMMENT ON COLUMN public.tbl_his_inf_parsed.control_type_heating_hotwater       
 COMMENT ON COLUMN public.tbl_his_inf_parsed.energy_saving_heating_setting_floor_temp      IS '난방(온돌모드) 설정온도 (에너지 절약)';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.energy_saving_heating_setting_room_temp       IS '실온설정온도(에너지절약)';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.gas_measure_unit                              IS '가스사용량 단위정보';
-COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern_reserve_info                          IS '패턴예약 정보'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern1_extinguished_time                    IS '패턴1 예약 소화시간'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern1_combustion_time                      IS '패턴1 예약 연소시간'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern2_extinguished_time                    IS '패턴2 예약 소화시간'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern2_combustion_time                      IS '패턴2 예약 연소시간'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern3_extinguished_time                    IS '패턴3 예약 소화시간'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern3_combustion_time                      IS '패턴3 예약 연소시간'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_supply_th                             IS '난방출탕 TH'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_supply_th                            IS '온수출탕 TH'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_th                                     IS '동결 TH'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.water_circulation_th                          IS '환수 TH'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_th                                   IS '배기 TH'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_ai_status                             IS '난방AI 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_ai_status                            IS '온수AI 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.ota_status                                    IS 'OTA 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.smart_diagnosis_status                        IS '스마트진단 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.progress_rate                                 IS '진행률'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.sensor_diagnosis_status                       IS '센서부 진단 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.room_th_error_state                           IS '실내온도 TH 에러상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_supply_th_error_state                 IS '난방출탕 TH 에러상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_supply_th_error_state                IS '온수출탕 TH 에러상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_th_error_state                         IS '동결 TH 에러상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.water_circulation_th_error_state              IS '환수 TH 에러상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_th_error_state                       IS '배기 TH 에러상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.ignition_unit_diagnosis_state                 IS '점화부 진단 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.ignition_unit_diagnosis_error                 IS '점화부 진단 에러'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_state                 IS '순환부 진단 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_error                 IS '순환부 진단 에러'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_unit_diagnosis_state                      IS '송풍장치 진단'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_error                                     IS 'FAN 에러'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_block_error                          IS '배기폐쇄 에러'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_state                    IS '통신 상태 진단 상태'
-COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_error                    IS '통신 상태 진단 에러'
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern_reserve_info                          IS '패턴예약 정보';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern1_extinguished_time                    IS '패턴1 예약 소화시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern1_combustion_time                      IS '패턴1 예약 연소시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern2_extinguished_time                    IS '패턴2 예약 소화시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern2_combustion_time                      IS '패턴2 예약 연소시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern3_extinguished_time                    IS '패턴3 예약 소화시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern3_combustion_time                      IS '패턴3 예약 연소시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_supply_th                             IS '난방출탕 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_supply_th                            IS '온수출탕 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_th                                     IS '동결 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.water_circulation_th                          IS '환수 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_th                                   IS '배기 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_ai_status                             IS '난방AI 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_ai_status                            IS '온수AI 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ota_status                                    IS 'OTA 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.smart_diagnosis_status                        IS '스마트진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.progress_rate                                 IS '진행률';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sensor_diagnosis_status                       IS '센서부 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.room_th_error_state                           IS '실내온도 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_supply_th_error_state                 IS '난방출탕 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_supply_th_error_state                IS '온수출탕 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_th_error_state                         IS '동결 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.water_circulation_th_error_state              IS '환수 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_th_error_state                       IS '배기 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ignition_unit_diagnosis_state                 IS '점화부 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ignition_unit_diagnosis_error                 IS '점화부 진단 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_state                 IS '순환부 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_error                 IS '순환부 진단 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_unit_diagnosis_state                      IS '송풍장치 진단';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_error                                     IS 'FAN 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_block_error                          IS '배기폐쇄 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_state                    IS '통신 상태 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_error                    IS '통신 상태 진단 에러';
 
 -- add index
 CREATE INDEX idx_tbl_his_inf_parsed_serial_num_c_date ON public.tbl_his_inf_parsed (serial_num, c_date);
