@@ -9,6 +9,9 @@ const sConf = {
         'lat', 'lon', 'c_date',
     ],
     BULK_INSERT_CHUNK_SIZE: 1000,
+
+    API_SYNC_PATH: '/api/device/list/sync',
+    API_SYNC_METHOD: 'POST',
 };
 
 // script values
@@ -75,8 +78,8 @@ module.exports = async (ctx, src, packet, listener) => {
         // hostname: 'http://localhost:11003',
         hostname: conf.stat.interface.host,
         port: conf.stat.interface.port,
-        path: '/api/sync/device/list',
-        method: 'POST',
+        path: sConf.API_SYNC_PATH,
+        method: sConf.API_SYNC_METHOD,
         headers: {
             // 'Content-Type': 'application/json',
             // 'Content-Length': _body.length
