@@ -32,6 +32,13 @@ export DB_PASSWORD_CK_HISTORY_DB=xxxx
 
 ## 실행
 
+inline 실행
+
 ```shell
 APP_ENV=dev python3 -m app.main
+```
+
+pm2 실행
+```shell
+pm2 start start.sh --name ck-pre-process --interpreter bash
 ```
