@@ -12,6 +12,7 @@ databases:
     port: 5432
     dbname: ck_stat_db
     user: ckstack
+    password: env://DB_PASSWORD_CK_STAT_DB
     pool:
       min: 1
       max: 5
@@ -22,6 +23,7 @@ databases:
     port: 5432
     dbname: ck_history_db
     user: ckstack
+    password: env://DB_PASSWORD_CK_HISTORY_DB
     pool:
       min: 1
       max: 10
