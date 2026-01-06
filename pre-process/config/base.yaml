@@ -2,13 +2,13 @@ log:
   default-level: debug
 
 mqtt:
-  host: 192.168.0.249
+  host: localhost
   port: 1883
 
 databases:
   stat:
     engine: postgresql
-    host: 127.0.0.1
+    host: localhost
     port: 5432
     dbname: ck_stat_db
     user: ckstack
@@ -18,7 +18,7 @@ databases:
 
   history:
     engine: postgresql
-    host: 127.0.0.1
+    host: localhost
     port: 5432
     dbname: ck_history_db
     user: ckstack
