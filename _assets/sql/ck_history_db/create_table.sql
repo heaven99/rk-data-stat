@@ -1,50 +1,38 @@
 /**
- * tbl_device
+ * tbl_device_sync_his
  * device master table (backup/sync capable)
  */
-
 -- drop table
-DROP TABLE IF EXISTS public.tbl_device;
+-- DROP TABLE IF EXISTS public.tbl_device_sync_his;
 
 -- create table
-CREATE TABLE public.tbl_device (
-    id              BIGINT GENERATED ALWAYS AS IDENTITY,
+CREATE TABLE public.tbl_device_sync_his (
     sync_date       TIMESTAMP,
-    group_cd        CHAR(3) DEFAULT '',
-    group_type_cd   CHAR(2) DEFAULT '',
-    device_id       INTEGER NOT NULL DEFAULT 0,
-    serial_num      CHAR(17) NOT NULL,
-    lat             DOUBLE PRECISION,
-    lon             DOUBLE PRECISION,
+    file_path       VARCHAR(255) DEFAULT '',
+    expire_date     TIMESTAMP,
+    delete_date     TIMESTAMP,
     c_date          TIMESTAMP
 );
 
 -- table comment
-COMMENT ON TABLE public.tbl_device IS 'device master table (created from source table backup/sync purpose)';
+COMMENT ON TABLE public.tbl_device_sync_his IS 'device sync hist';
 
 -- column comments
-COMMENT ON COLUMN public.tbl_device.id IS 'surrogate key (identity)';
-COMMENT ON COLUMN public.tbl_device.sync_date IS 'backup/sync datetime copied from source table';
-COMMENT ON COLUMN public.tbl_device.group_cd IS 'device group cd';
-COMMENT ON COLUMN public.tbl_device.group_type_cd IS 'device group type cd';
-COMMENT ON COLUMN public.tbl_device.device_id IS 'device numeric id (non-negative)';
-COMMENT ON COLUMN public.tbl_device.serial_num IS 'device serial number';
-COMMENT ON COLUMN public.tbl_device.lat IS 'latitude (unsigned semantics)';
-COMMENT ON COLUMN public.tbl_device.lon IS 'longitude (unsigned semantics)';
-COMMENT ON COLUMN public.tbl_device.c_date IS 'device created datetime (timestamp without timezone)';
+COMMENT ON COLUMN public.tbl_device_sync_his.sync_date IS 'backup/sync datetime copied from source table';
+COMMENT ON COLUMN public.tbl_device_sync_his.file_path IS 'file path';
+COMMENT ON COLUMN public.tbl_device_sync_his.expire_date IS 'file expire date. if null, never expire';
+COMMENT ON COLUMN public.tbl_device_sync_his.delete_date IS 'file delete date. if null, not deleted yet';
+COMMENT ON COLUMN public.tbl_device_sync_his.c_date IS 'create date';
 
 -- index
-CREATE INDEX idx_tbl_device_sync_date_serial_num ON public.tbl_device (sync_date,serial_num);
+CREATE INDEX idx_tbl_device_sync_his_sync_date ON public.tbl_device_sync_his (sync_date);
 
-COMMENT ON INDEX public.idx_tbl_device_sync_date_serial_num IS 'index for device lookup by serial number';
-
--- primary key
-ALTER TABLE public.tbl_device ADD CONSTRAINT pk_tbl_device PRIMARY KEY (id);
+COMMENT ON INDEX public.idx_tbl_device_sync_his_sync_date IS 'index for device lookup by sync date';
 
 /**
  * tbl_device_his_inf
  */
-DROP TABLE public.tbl_device_his_inf;
+-- DROP TABLE public.tbl_device_his_inf;
 
 -- create table
 CREATE TABLE public.tbl_device_his_inf (

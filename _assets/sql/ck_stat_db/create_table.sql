@@ -1,5 +1,9 @@
+/**
+ * tbl_stat_src
+ * stat source raw table (backup/sync capable)
+ */
 -- stat src
-DROP TABLE public.tbl_stat_src;
+-- DROP TABLE public.tbl_stat_src;
 -- TODO partition
 -- create table
 CREATE TABLE public.tbl_stat_src (
