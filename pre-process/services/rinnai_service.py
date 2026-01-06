@@ -19,7 +19,7 @@ class RinnaiService:
             return
 
         if device_type != 'f06':
-            log.warning("unsupported device type: %s", device_type)
+            log.debug("unsupported device type: %s", device_type)
             return
 
         # id         BIGINT GENERATED ALWAYS AS IDENTITY,

@@ -1,14 +1,11 @@
 from handlers.mqtt_handler import MQTTHandler
 from common.config import load_config
-from modules.postgresql import init_postgres_all
+from modules.postgresql import init_postgres
 
 config = load_config()
-init_postgres_all(config["databases"])
+init_postgres(config["databases"])
 
 def main():
-    register_winston_levels()
-    setup_basic_console_logger()
-
     config = {
         "host": "192.168.0.249",
         "port": 1883,

@@ -39,7 +39,7 @@ class MQTTHandler:
 
     def on_message(self, client, userdata, msg):
         payload = msg.payload.decode("utf-8", errors="ignore")
-        log.info("recv topic=%s payload=%s", msg.topic, payload)
+        log.debug("recv topic=%s payload=%s", msg.topic, payload)
 
         try:
             data = json.loads(payload)
