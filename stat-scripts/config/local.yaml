@@ -4,7 +4,7 @@ log:
 databases:
   stat:
     engine: postgresql
-    host: 127.0.0.1
+    host: 192.168.0.253
     port: 5432
     dbname: ck_stat_db
     user: ckstack
@@ -15,7 +15,7 @@ databases:
 
   history:
     engine: postgresql
-    host: 127.0.0.1
+    host: 192.168.0.253
     port: 5432
     dbname: ck_history_db
     user: ckstack

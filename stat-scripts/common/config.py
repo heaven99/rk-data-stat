@@ -3,6 +3,27 @@ import yaml
 
 _CONFIG_CACHE = None
 
+def resolve_env_value(value):
+    if isinstance(value, str) and value.startswith("env://"):
+        env_key = value[len("env://"):]
+        return os.getenv(env_key)
+    return value
+
+
+def resolve_env_config(obj):
+    """
+    config dict 전체를 순회하면서 env:// 값을 env 값으로 치환
+    """
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            obj[k] = resolve_env_config(v)
+        return obj
+
+    if isinstance(obj, list):
+        return [resolve_env_config(v) for v in obj]
+
+    return resolve_env_value(obj)
+
 
 def load_config():
     global _CONFIG_CACHE
@@ -36,19 +57,8 @@ def load_config():
     config.setdefault("databases", {})
     config.setdefault("mqtt", {})
 
-    if "stat" in config["databases"]:
-        pw = os.getenv("DB_PASSWORD_CK_STAT_DB")
-        if pw:
-            config["databases"]["stat"]["password"] = pw
-
-    if "history" in config["databases"]:
-        pw = os.getenv("DB_PASSWORD_CK_HISTORY_DB")
-        if pw:
-            config["databases"]["history"]["password"] = pw
-
-    mqtt_pw = os.getenv("MQTT_PASSWORD")
-    if mqtt_pw:
-        config["mqtt"]["password"] = mqtt_pw
+    # 5. resolve env:// values
+    config = resolve_env_config(config)
 
     _CONFIG_CACHE = config
     return config

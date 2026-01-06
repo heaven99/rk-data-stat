@@ -7,36 +7,85 @@ array_runner.py
   array를 loop 돌며 function을 실행하는 유틸 모듈
 """
 
-from typing import Callable, Iterable, List, Any
+from typing import Callable, Iterable, List, Any, Optional
+from common.logger import get_logger
+import time
 
+log = get_logger()
 
+def calc_progress_step(total: int) -> int:
+    """
+    total 개수에 따라 진행률 로그 단위를 결정
+    """
+    if total >= 100_000:
+        return 5      # 5%
+    elif total >= 10_000:
+        return 10     # 10%
+    else:
+        return 20     # 20%
+
+"""
+items 를 순회하면서 fn(item)을 실행한다.
+
+:param collect_result:
+    True  -> fn(item) 결과를 list 로 반환 (index == items index)
+    False -> 결과를 저장하지 않음 (None 반환)
+"""
 def run_array(
-    items: Iterable[Any],
-    fn: Callable[[Any], Any],
+    items,
+    fn,
+    lhd: str = "",
     *,
-    stop_on_error: bool = False
-) -> List[Any]:
-    """
-    items 를 순회하면서 fn(item)을 실행한다.
+    stop_on_error: bool = False,
+    collect_result: bool = False,
+):
+    items = list(items)
+    total = len(items)
 
-    :param items: iterable (list, tuple 등)
-    :param fn: item 하나를 인자로 받는 함수
-    :param stop_on_error: True 면 에러 발생 시 즉시 중단
-    :return: fn 실행 결과 리스트
-    """
-    results = []
+    log.debug("%sstart run_array. total [%d]", lhd, total)
 
-    for idx, item in enumerate(items):
+    start_ts = time.monotonic()
+
+    step = calc_progress_step(total)
+    next_mark = step
+
+    results = [] if collect_result else None
+
+    for idx, item in enumerate(items, start=1):
         try:
-            result = fn(item)
-            results.append(result)
+            ret = fn(item)
+            if collect_result:
+                results.append(ret)
         except Exception as e:
-            print(f"[ERROR] index={idx}, item={item}, error={e}")
+            log.error("%sindex=%d, item=%s, error=%s", lhd, idx-1, item, e)
+            if collect_result:
+                results.append(None)
             if stop_on_error:
                 raise
-            results.append(None)
+
+        current_percent = (idx * 100) // total
+
+        if current_percent >= next_mark:
+            elapsed = time.monotonic() - start_ts
+            log.debug(
+                "%sprogress [%d%%] (%d/%d), elapsed [%.2fs]",
+                lhd,
+                next_mark,
+                idx,
+                total,
+                elapsed,
+            )
+            next_mark += step
+
+    elapsed = time.monotonic() - start_ts
+
+    log.debug(
+        "%send run_array. elapsed [%.3fs]", lhd, elapsed
+    )
 
     return results
+
+
 
 
 # ---------------------------
@@ -45,10 +94,13 @@ def run_array(
 if __name__ == "__main__":
 
     def sample_func(x):
+        time.sleep(0.1)
         return x * 2
 
-    data = [1, 2, 3, 4, 5]
+    data = list(range(1, 21))
 
-    print("[START] run_array")
-    output = run_array(data, sample_func)
-    print("[RESULT]", output)
+    run_array(
+        data,
+        sample_func,
+        lhd="[TEST]",
+    )

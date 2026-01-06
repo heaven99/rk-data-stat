@@ -1,15 +1,6 @@
-from common.logger import (
-    register_winston_levels,
-    get_logger,
-    setup_basic_console_logger,
-)
+from common.logger import get_logger
 
-# 앱 시작 시 1회
-register_winston_levels()
-setup_basic_console_logger()
-
-# app.conf.log["default-level"]
-log = get_logger("app", default_level="debug")
+log = get_logger()
 
 log.alarm("SYSTEM ALARM")
 log.error("db error")

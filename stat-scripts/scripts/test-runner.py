@@ -1,16 +1,8 @@
 from modules.array_runner import run_array
-from common.logger import (
-    register_winston_levels,
-    get_logger,
-    setup_basic_console_logger,
-)
-
-# 앱 시작 시 1회
-register_winston_levels()
-setup_basic_console_logger()
+from common.logger import get_logger
 
 # app.conf.log["default-level"]
-log = get_logger("app", default_level="debug")
+log = get_logger()
 
 def process(x):
     return x + 10
