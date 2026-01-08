@@ -246,8 +246,8 @@ def parse_topic(topic: str):
     """
     try:
         parts = (topic or '').split('/')
-        group_cd = (parts[4] if len(parts) > 1 else '').upper()[:3].ljust(3)  # CHAR(3)
-        group_type_cd = (parts[5] if len(parts) > 2 else '').upper()[:2].ljust(2)  # CHAR(2)
+        group_cd = (parts[4] if len(parts) > 4 else '').upper()[:3].ljust(3)  # CHAR(3)
+        group_type_cd = (parts[5] if len(parts) > 5 else '').upper()[:2].ljust(2)  # CHAR(2)
         return group_cd, group_type_cd
     except Exception:
         return '   ', '  '
