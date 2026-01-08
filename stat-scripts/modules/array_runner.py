@@ -18,9 +18,13 @@ def calc_progress_step(total: int) -> int:
     total 개수에 따라 진행률 로그 단위를 결정
     """
     if total >= 100_000:
+        return 1      # 1%
+    if total >= 50_000:
         return 5      # 5%
     elif total >= 10_000:
         return 10     # 10%
+    elif total >= 5_000:
+        return 20     # 20%
     else:
         return 20     # 20%
 
@@ -42,7 +46,7 @@ def run_array(
     items = list(items)
     total = len(items)
 
-    log.debug("%sstart run_array. total [%d]", lhd, total)
+    log.info("%sstart run_array. total [%d]", lhd, total)
 
     start_ts = time.monotonic()
 
@@ -67,7 +71,7 @@ def run_array(
 
         if current_percent >= next_mark:
             elapsed = time.monotonic() - start_ts
-            log.debug(
+            log.info(
                 "%sprogress [%d%%] (%d/%d), elapsed [%.2fs]",
                 lhd,
                 next_mark,
@@ -79,7 +83,7 @@ def run_array(
 
     elapsed = time.monotonic() - start_ts
 
-    log.debug(
+    log.info(
         "%send run_array. elapsed [%.3fs]", lhd, elapsed
     )
 

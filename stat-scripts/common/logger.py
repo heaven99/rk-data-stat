@@ -15,6 +15,7 @@ from common.config import load_config  # config 연동
 
 _INITIALIZED = False
 _DEFAULT_LEVEL: Optional[str] = None
+_LOGGER_CACHE = {}  # type: Dict[tuple, CKLogger]
 
 
 # -------------------------------------------------
@@ -117,7 +118,7 @@ class CKLogger:
 
             # stdout: info 이하 (debug, verbose, silly 포함)
             stdout_handler = logging.StreamHandler(sys.stdout)
-            stdout_handler.setLevel(self._levels["info"])
+            stdout_handler.setLevel(self._logger.level)  # Logger level과 동일하게
             stdout_handler.setFormatter(formatter)
 
             # stderr: warn 이상 (warn, error, alarm)
@@ -157,7 +158,10 @@ def get_logger(
     name: str = "",
     level: Optional[str] = None,
 ) -> CKLogger:
-    return CKLogger(name=name, level=level)
+    cache_key = (name, level)
+    if cache_key not in _LOGGER_CACHE:
+        _LOGGER_CACHE[cache_key] = CKLogger(name=name, level=level)
+    return _LOGGER_CACHE[cache_key]
 
 
 def create_logger(
