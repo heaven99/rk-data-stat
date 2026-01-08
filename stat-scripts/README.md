@@ -39,6 +39,7 @@ export DB_PASSWORD_CK_HISTORY_DB=xxxx
 
 ```shell
 APP_ENV=dev python3 -m scripts.make_src
+APP_ENV=dev python3 -m scripts.make_src YYYYMMDDHH
 ```
 
 # crontab 설정

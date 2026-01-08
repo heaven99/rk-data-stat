@@ -15,84 +15,15 @@ log = get_logger()
 tid = None
 lhd = None
 
+SCRIPT_NAME = "make_src"
+
 STAT_TIME_STR = None
 STAT_TIME_DT = None
     
 WINDOW_START = None
 WINDOW_END = None
 
-def init_lhd():
-    global tid, lhd
-
-    tid = int(time.time() * 1000)
-    lhd = f"[make-src:{tid}] - "
-
-    # log.info("%s start job", lhd)
-
-
-def init_stat_time():
-    global STAT_TIME_STR, STAT_TIME_DT, WINDOW_START, WINDOW_END
-
-    # python -m scripts.make_src [YYYYMMDDHH]
-    arg = sys.argv[1] if len(sys.argv) > 1 else None
-
-    if arg:
-        # YYYYMMDDHH → YYYYMMDDHH0000
-        stat_str = arg + "0000"
-        STAT_TIME_DT = datetime.strptime(stat_str, "%Y%m%d%H%M%S")
-        STAT_TIME_STR = stat_str
-    else:
-        now = datetime.now().replace(minute=0, second=0, microsecond=0)
-        STAT_TIME_DT = now
-        STAT_TIME_STR = now.strftime("%Y%m%d%H%M%S")
-    
-    WINDOW_START = STAT_TIME_DT - timedelta(hours=1)
-    WINDOW_END = STAT_TIME_DT
-
-    log.info("%sset stat time. parameter [%s]. stat time [%s], window start [%s], window end [%s]", lhd, arg, STAT_TIME_STR, WINDOW_START, WINDOW_END)
-
-def parse_stat_datetime(yyyymmddhhmmss: str | None) -> tuple[str, datetime]:
-    """
-    YYYYMMDDHHmmss → (정규화된 문자열, datetime)
-    mmss는 항상 0000
-    """
-    if yyyymmddhhmmss:
-        base = yyyymmddhhmmss[:10]  # YYYYMMDDHH
-        stat_str = base + "0000"
-        stat_dt = datetime.strptime(stat_str, "%Y%m%d%H%M%S")
-    else:
-        now = datetime.now()
-        stat_dt = now.replace(minute=0, second=0, microsecond=0)
-        stat_str = stat_dt.strftime("%Y%m%d%H%M%S")
-
-    return stat_str, stat_dt
-
-
-def make_src_packet_count_inf(device: dict, cnt: int):
-    serial_num = device.get("serial_num")
-    if not serial_num:
-        return
-
-    query(
-        "stat",
-        """
-        INSERT INTO tbl_stat_src (
-            stat_date,
-            serial_num,
-            data_type,
-            value
-        )
-        VALUES (%s, %s, %s, %s)
-        """,
-        (
-            STAT_TIME_STR,
-            serial_num,
-            "PACKET_COUNT_INF",
-            cnt,
-        ),
-    )
-
-
+# 통계 데이터 처리
 def process(device):
     serial_num = device.get("serial_num")
     if not serial_num:
@@ -114,13 +45,84 @@ def process(device):
         fetch=Fetch.ALL,
     )
 
+    # 데이터 연산
     cnt = len(rows)
 
-    make_src_packet_count_inf(device, cnt)
+    # 통계 데이터 저장
+    query(
+        "stat",
+        """
+        INSERT INTO tbl_stat_src (
+            stat_date,
+            serial_num,
+            data_type,
+            value
+        )
+        VALUES (%s, %s, %s, %s)
+        """,
+        (
+            STAT_TIME_STR,
+            serial_num,
+            "PACKET_COUNT_INF",
+            cnt,
+        ),
+    )
+
     return True
 
 
+# lhd 셋팅
+def init_lhd():
+    global tid, lhd, SCRIPT_NAME
 
+    tid = int(time.time() * 1000)
+    lhd = f"[{SCRIPT_NAME}:{tid}] - "
+
+    # log.info("%s start job", lhd)
+
+
+# stat time 셋팅
+def init_stat_time():
+    global STAT_TIME_STR, STAT_TIME_DT, WINDOW_START, WINDOW_END
+
+    # python -m scripts.make_src [YYYYMMDDHH]
+    arg = sys.argv[1] if len(sys.argv) > 1 else None
+
+    if arg:
+        # YYYYMMDDHH → YYYYMMDDHH0000
+        stat_str = arg + "0000"
+        STAT_TIME_DT = datetime.strptime(stat_str, "%Y%m%d%H%M%S")
+        STAT_TIME_STR = stat_str
+    else:
+        now = datetime.now().replace(minute=0, second=0, microsecond=0)
+        STAT_TIME_DT = now
+        STAT_TIME_STR = now.strftime("%Y%m%d%H%M%S")
+    
+    WINDOW_START = STAT_TIME_DT - timedelta(hours=1)
+    WINDOW_END = STAT_TIME_DT
+
+    log.info("%sset stat time. parameter [%s]. stat time [%s], window start [%s], window end [%s]", lhd, arg, STAT_TIME_STR, WINDOW_START, WINDOW_END)
+
+
+# stat time 셋팅
+def parse_stat_datetime(yyyymmddhhmmss: str | None) -> tuple[str, datetime]:
+    """
+    YYYYMMDDHHmmss → (정규화된 문자열, datetime)
+    mmss는 항상 0000
+    """
+    if yyyymmddhhmmss:
+        base = yyyymmddhhmmss[:10]  # YYYYMMDDHH
+        stat_str = base + "0000"
+        stat_dt = datetime.strptime(stat_str, "%Y%m%d%H%M%S")
+    else:
+        now = datetime.now()
+        stat_dt = now.replace(minute=0, second=0, microsecond=0)
+        stat_str = stat_dt.strftime("%Y%m%d%H%M%S")
+
+    return stat_str, stat_dt
+
+
+# device list fetch
 def fetch_device_list():
     """
     device list API 호출
@@ -161,6 +163,7 @@ def fetch_device_list():
         return []
 
 
+# main
 def main():
     init_lhd()
     init_stat_time()
