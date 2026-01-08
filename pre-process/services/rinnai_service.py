@@ -1,5 +1,5 @@
 from common.logger import get_logger
-from modules.postgresql import get_conn
+from modules.postgresql import get_conn, query
 from psycopg.types.json import Json
 
 log = get_logger("rinnai_service")
@@ -27,22 +27,19 @@ class RinnaiService:
         # topic      VARCHAR(128) NOT NULL,
         # orig_data  TEXT,
         # c_date     TIMESTAMP
-        with get_conn("history") as conn:
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO tbl_device_his_inf (
-                        serial_num,
-                        topic,
-                        orig_data,
-                        c_date
-                    )
-                    VALUES (%s, %s, %s, now())
-                    """,
-                    (serial_num, topic, Json(data)),
-                )
+        insert_raw_query = """
+            INSERT INTO tbl_device_his_inf (
+                serial_num,
+                topic,
+                orig_data,
+                c_date
+            )
+            VALUES (%s, %s, %s, now())
+        """
+        insert_raw_param = (serial_num, topic, Json(data))
+        insert_raw_info = query("history", insert_raw_query, insert_raw_param)
 
-        log.info("saved history event %s", serial_num)
+        log.info("saved raw history. serial num [%s], row count [%d]", serial_num, insert_raw_info)
 
         # TODO data parse
         # TODO insert into parsed table
