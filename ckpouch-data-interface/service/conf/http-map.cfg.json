@@ -1,4 +1,5 @@
 {
     "/api/device/list/sync":    { "POST": { "event": "device-list-sync",           "desc": "Device list sync" } },
-    "/api/device/list":         { "POST": { "event": "device-list",           "desc": "Device list" } }
+    "/api/device/list":         { "POST": { "event": "device-list",           "desc": "Device list" } },
+    "/aiot/stat/get-boiler-usage":        { "POST": { "event": "stat-boiler-usage",           "desc": "Stat boiler usage" } }
 }

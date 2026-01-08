@@ -1,3 +1,6 @@
 {
-    "modules": []
+  "modules": [
+    { "key": "ckpush4", "script": "/modules/ckpush4.js" },
+    { "key": "codes", "script": "/modules/codes.js" }
+  ]
 }

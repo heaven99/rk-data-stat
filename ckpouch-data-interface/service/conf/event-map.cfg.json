@@ -1,6 +1,7 @@
 {
     "event-map": [
         { "event": "device-list-sync",    "protocol": "LOAD", "script": "/scripts/device-list-sync.js" },
-        { "event": "device-list",         "protocol": "LOAD", "script": "/scripts/device-list.js" }
+        { "event": "device-list",         "protocol": "LOAD", "script": "/scripts/device-list.js" },
+        { "event": "stat-boiler-usage",         "protocol": "LOAD", "script": "/scripts/stat/boiler-usage.js" }
     ]
 }
