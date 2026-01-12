@@ -84,6 +84,7 @@ CREATE TYPE enum_exist2 AS ENUM ('없음', '버블 OFF', '버블 ON');
 CREATE TYPE enum_control_action AS ENUM ('조작없음', 'ON', 'OFF');
 CREATE TYPE enum_control_action2 AS ENUM ('조작없음', '조작&변경있음');
 CREATE TYPE enum_control_action3 AS ENUM ('조작없음', 'AUTO ON', 'AUTO OFF', 'SAVE ON', 'SAVE OFF', '정음+SAVE ON', '정음+SAVE OFF', '정음+AUTO ON', '정음+AUTO OFF', '정음 ON', '정음 OFF');
+CREATE TYPE enum_control_action4 AS ENUM ('조작없음', '난방AI ON', '난방AI OFF', '온수AI ON', '온수AI OFF', '난방+온수AI ON', '난방+온수AI OFF');
 -- CREATE TYPE enum_reserve_info AS ENUM ('미사용', '표준', '공동', '절약', '개인설정1', '개인설정2');
 CREATE TYPE enum_reserve_info AS ENUM ('미사용', '유형1', '유형2', '유형3', '유형4', '유형5');
 CREATE TYPE enum_reserve_type AS ENUM ('일반예약', '24시간예약', '패턴예약');
@@ -94,6 +95,8 @@ CREATE TYPE enum_gas_measure_unit AS ENUM ('m3', 'kg');
 CREATE TYPE enum_pattern_reserve AS ENUM ('미사용', '패턴1', '패턴2', '패턴3');
 CREATE TYPE enum_progress AS ENUM ('지시없음', '진행중', '완료', '실패');
 CREATE TYPE enum_result AS ENUM ('시작전', '이상없음', '이상있음');
+CREATE TYPE enum_volume_phase AS ENUM ('0단계', '1단계', '2단계', '3단계', '4단계', '5단계');
+CREATE TYPE enum_lang_status AS ENUM ('한국어', '영어');
 
 
 
@@ -271,6 +274,205 @@ COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_error                           
 COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_block_error                          IS '배기폐쇄 에러';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_state                    IS '통신 상태 진단 상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_error                    IS '통신 상태 진단 에러';
+
+-- add index
+CREATE INDEX idx_tbl_his_inf_parsed_serial_num_c_date ON public.tbl_his_inf_parsed (serial_num, c_date);
+
+-- add comment for index
+COMMENT ON INDEX public.idx_tbl_his_inf_parsed_serial_num_c_date IS 'index for parsed device inf history query by serial_num, c_date';
+
+-- add pk
+-- check pk uniqueness
+-- SELECT COUNT(*) AS total_cnt, COUNT(DISTINCT id) AS distinct_id_cnt FROM public.tbl_his_inf_parsed;
+
+-- add pk
+-- ALTER TABLE public.tbl_his_inf_parsed ADD CONSTRAINT pk_tbl_his_inf_parsed PRIMARY KEY (id);
+
+
+
+
+
+/**
+ * tbl_device_his_inf
+ */
+DROP TABLE public.tbl_his_inf_parsed2;
+
+-- create table
+CREATE TABLE public.tbl_his_inf_parsed2 (
+   serial_num                                       CHAR(17) NOT NULL,
+   c_date                                           TIMESTAMP NOT NULL,
+   group_cd                                         CHAR(3) NOT NULL,
+   group_type_cd                                    CHAR(2) NOT NULL,
+   lat                                              double precision,
+   lon                                              double precision,
+   power_status                                     public.enum_on_off NOT NULL DEFAULT 'OFF',
+   test_status                                      public.enum_on_off NOT NULL DEFAULT 'OFF',
+   heating_status                                   public.enum_on_off NOT NULL DEFAULT 'OFF',
+   hotwater_status                                  public.enum_on_off NOT NULL DEFAULT 'OFF',
+   boost_status                                     public.enum_on_off NOT NULL DEFAULT 'OFF',
+   pre_heating_status                               public.enum_on_off NOT NULL DEFAULT 'OFF',
+   lock_status                                      public.enum_lock_unlock NOT NULL DEFAULT 'UNLOCK',
+   heating_mode                                     public.enum_heating_type NOT NULL DEFAULT '온돌',
+   heating_combustion                               public.enum_on_off NOT NULL DEFAULT 'OFF',
+   hotwater_combustion                              public.enum_on_off NOT NULL DEFAULT 'OFF',
+   hotwater_setting_integer                         SMALLINT NOT NULL,
+   hotwater_setting_decimal                         SMALLINT NOT NULL,
+   heating_setting_floor_temp                       SMALLINT NOT NULL,
+   heating_setting_room_temp                        SMALLINT NOT NULL,
+   current_room_temp                                SMALLINT NOT NULL,
+   outing_status                                    public.enum_on_off NOT NULL DEFAULT 'OFF',
+   error_status                                     public.enum_on_off NOT NULL DEFAULT 'OFF',
+   error_data                                       CHAR(3) NOT NULL DEFAULT '000',
+   heating_eco_detect                               public.enum_exist NOT NULL DEFAULT '없음',
+   water_flow_detect                                public.enum_exist2 NOT NULL DEFAULT '없음',
+   mode_status                                      public.enum_mode NOT NULL DEFAULT 'OFF',
+   freeze_alarm_noti                                public.enum_on_off NOT NULL DEFAULT 'OFF',
+   freeze_buzzer_alarm                              public.enum_on_off NOT NULL DEFAULT 'OFF',
+   setting_temp_limit_range                         SMALLINT NOT NULL,
+   sw_control_power                                 public.enum_control_action NOT NULL DEFAULT '조작없음',
+   sw_control_heating                               public.enum_control_action NOT NULL DEFAULT '조작없음',
+   sw_control_hotwater                              public.enum_control_action NOT NULL DEFAULT '조작없음',
+   sw_control_outing                                public.enum_control_action NOT NULL DEFAULT '조작없음',
+   sw_control_mode                                  public.enum_control_action3 NOT NULL DEFAULT '조작없음',
+   sw_control_reserve                               public.enum_control_action NOT NULL DEFAULT '조작없음',
+   sw_control_chg_heating                           public.enum_control_action2 NOT NULL DEFAULT '조작없음',
+   sw_control_chg_hotwater                          public.enum_control_action2 NOT NULL DEFAULT '조작없음',
+   sw_control_ai                                    public.enum_control_action4 DEFAULT null,                       -- null 이 될 수 있음.
+   reserve_status                                   public.enum_on_off NOT NULL DEFAULT 'OFF',
+   reserve_type                                     public.enum_reserve_type NOT NULL DEFAULT '일반예약',
+   reserve_info_normal                              CHAR(3) NOT NULL,
+   reserve_info_type                                public.enum_reserve_info NOT NULL DEFAULT '미사용',
+   reserve_info_24                                  CHAR(12) NOT NULL DEFAULT '000000000000',
+   user_info_reset                                  public.enum_user_status NOT NULL DEFAULT '통상',
+   control_type_heating_hotwater                    public.enum_heating_on_mode NOT NULL DEFAULT '라디에이터',
+   energy_saving_heating_setting_floor_temp         SMALLINT NOT NULL,
+   energy_saving_heating_setting_room_temp          SMALLINT NOT NULL,
+   gas_measure_unit                                 public.enum_gas_measure_unit NOT NULL DEFAULT 'm3',
+   pattern_reserve_info                             public.enum_pattern_reserve NOT NULL DEFAULT '미사용',
+   pattern1_extinguished_time                       CHAR(3) DEFAULT null,
+   pattern1_combustion_time                         CHAR(3) DEFAULT null,
+   pattern2_extinguished_time                       CHAR(3) DEFAULT null,
+   pattern2_combustion_time                         CHAR(3) DEFAULT null,
+   pattern3_extinguished_time                       CHAR(3) DEFAULT null,
+   pattern3_combustion_time                         CHAR(3) DEFAULT null,
+   heating_supply_th                                CHAR(4) DEFAULT null,
+   hotwater_supply_th                               CHAR(4) DEFAULT null,
+   freeze_th                                        CHAR(4) DEFAULT null,
+   water_circulation_th                             CHAR(4) DEFAULT null,
+   emission_th                                      CHAR(4) DEFAULT null,
+   ai_status                                        public.enum_on_off DEFAULT null,                                -- null 이 될 수 있음.
+   heating_ai_status                                public.enum_on_off DEFAULT null,
+   hotwater_ai_status                               public.enum_on_off DEFAULT null,
+   ota_status                                       public.enum_progress DEFAULT null,
+   smart_diagnosis_status                           public.enum_progress DEFAULT null,
+   progress_rate                                    CHAR(4) DEFAULT null,
+   sensor_diagnosis_status                          public.enum_result DEFAULT null,
+   room_th_error_state                              CHAR(2) DEFAULT null,
+   heating_supply_th_error_state                    CHAR(2) DEFAULT null,
+   hotwater_supply_th_error_state                   CHAR(2) DEFAULT null,
+   freeze_th_error_state                            CHAR(2) DEFAULT null,
+   water_circulation_th_error_state                 CHAR(2) DEFAULT null,
+   emission_th_error_state                          CHAR(2) DEFAULT null,
+   ignition_unit_diagnosis_state                    public.enum_result DEFAULT null,
+   ignition_unit_diagnosis_error                    CHAR(2) DEFAULT null,
+   circular_unit_diagnosis_state                    public.enum_result DEFAULT null,
+   circular_unit_diagnosis_error                    CHAR(2) DEFAULT null,
+   fan_unit_diagnosis_state                         public.enum_result DEFAULT null,
+   fan_error                                        CHAR(2) DEFAULT null,
+   emission_block_error                             CHAR(2) DEFAULT null,
+   comm_state_diagnosis_state                       public.enum_result DEFAULT null,
+   comm_state_diagnosis_error                       CHAR(2) DEFAULT null,
+   voice_volume_phase                               public.enum_volume_phase DEFAULT null,
+   voice_lang_status                                public.enum_lang_status DEFAULT null,
+);
+
+-- add comment for column
+COMMENT ON TABLE public.tbl_his_inf_parsed IS 'device history parsed information table';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.serial_num IS 'device serial number';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.c_date IS 'create_date';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.group_cd                                      IS '장비그룹';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.group_type_cd                                 IS '모델타입';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.lat                                           IS '위도';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.lon                                           IS '경도';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.power_status                                  IS '전원상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.test_status                                   IS '시운전';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_status                                IS '난방 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_status                               IS '온수 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.boost_status                                  IS '급속 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pre_heating_status                            IS '예열 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.lock_status                                   IS 'Lock 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_mode                                  IS '난방모드';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_combustion                            IS '난방연소상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_combustion                           IS '온수연소상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_setting_integer                      IS '온수설정온도(정수)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_setting_decimal                      IS '온수설정온도(소수점)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_setting_floor_temp                    IS '난방설정온도(온돌모드)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_setting_room_temp                     IS '난방설정온도(실온)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.current_room_temp                             IS '현재실온';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.outing_status                                 IS '외출상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.error_status                                  IS '에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.error_data                                    IS '에러데이터';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_eco_detect                            IS '난방에코검지';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.water_flow_detect                             IS '수류검지';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.mode_status                                   IS '모드상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_alarm_noti                             IS '동결알림통지';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_buzzer_alarm                           IS '동결부저알림';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.setting_temp_limit_range                      IS '설정온도 제한범위';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_power                              IS 'SW 조작정보 (전원)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_heating                            IS 'SW 조작정보 (난방)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_hotwater                           IS 'SW 조작정보 (온수)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_outing                             IS 'SW 조작정보 (외출)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_mode                               IS 'SW 조작정보 (모드상태)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_reserve                            IS 'SW 조작정보 (예약)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_chg_heating                        IS 'SW 조작정보 (난방온도)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_chg_hotwater                       IS 'SW 조작정보 (온수온도)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_control_ai                                 IS 'SW 조작정보 (AI)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.reserve_status                                IS '예약상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.reserve_type                                  IS '예약종류';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.reserve_info_normal                           IS '예약정보(일반예약_시각설정)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.reserve_info_type                             IS '예약정보(유형예약_시각설정)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.reserve_info_24                               IS '예약정보(24시간예약_시각설정)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.user_info_reset                               IS '유저 정보 초기화';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.control_type_heating_hotwater                 IS '난방(온돌모드) 제어정보 및 온수제어 방식';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.energy_saving_heating_setting_floor_temp      IS '난방(온돌모드) 설정온도 (에너지 절약)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.energy_saving_heating_setting_room_temp       IS '실온설정온도(에너지절약)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.gas_measure_unit                              IS '가스사용량 단위정보';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern_reserve_info                          IS '패턴예약 정보';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern1_extinguished_time                    IS '패턴1 예약 소화시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern1_combustion_time                      IS '패턴1 예약 연소시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern2_extinguished_time                    IS '패턴2 예약 소화시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern2_combustion_time                      IS '패턴2 예약 연소시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern3_extinguished_time                    IS '패턴3 예약 소화시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.pattern3_combustion_time                      IS '패턴3 예약 연소시간';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_supply_th                             IS '난방출탕 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_supply_th                            IS '온수출탕 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_th                                     IS '동결 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.water_circulation_th                          IS '환수 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_th                                   IS '배기 TH';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ai_status                                     IS 'AI 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_ai_status                             IS '난방AI 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_ai_status                            IS '온수AI 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ota_status                                    IS 'OTA 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.smart_diagnosis_status                        IS '스마트진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.progress_rate                                 IS '진행률';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sensor_diagnosis_status                       IS '센서부 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.room_th_error_state                           IS '실내온도 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_supply_th_error_state                 IS '난방출탕 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_supply_th_error_state                IS '온수출탕 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.freeze_th_error_state                         IS '동결 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.water_circulation_th_error_state              IS '환수 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_th_error_state                       IS '배기 TH 에러상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ignition_unit_diagnosis_state                 IS '점화부 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ignition_unit_diagnosis_error                 IS '점화부 진단 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_state                 IS '순환부 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.circular_unit_diagnosis_error                 IS '순환부 진단 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_unit_diagnosis_state                      IS '송풍장치 진단';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_error                                     IS 'FAN 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_block_error                          IS '배기폐쇄 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_state                    IS '통신 상태 진단 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_error                    IS '통신 상태 진단 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.voice_volume_phase                            IS '음성 볼륨 단계';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.voice_lang_status                             IS '음성 언어';
 
 -- add index
 CREATE INDEX idx_tbl_his_inf_parsed_serial_num_c_date ON public.tbl_his_inf_parsed (serial_num, c_date);
