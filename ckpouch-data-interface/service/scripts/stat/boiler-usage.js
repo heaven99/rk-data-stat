@@ -54,13 +54,13 @@ module.exports = async (ctx, src, packet, listener) => {
                 substring(stat_date, 9, 2) AS hh,
                 sum(value) AS total_value
             FROM public.tbl_stat_src2
-            WHERE stat_date >= $1
-              AND stat_date <= $2
-              AND serial_num = $3
+            WHERE serial_num = $1
+              AND stat_date >= $2
+              AND stat_date <= $3
               AND data_type  IN ('HOT_WATER_COMBUSTION', 'HEATING_COMBUSTION')
             GROUP BY substring(stat_date, 9, 2)
             ORDER BY hh;
-        `, [startDate, endDate, serialNum], lhd);
+        `, [serialNum, `${startDate}000000`, `${endDate}235959`], lhd);
     } catch (error) {
         log.error(`${lhd} failed to get boiler usage. error: ${error.message}`);
         return modules.ckpush4.makeResponse('failed', null, tid);

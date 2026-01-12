@@ -1,5 +1,7 @@
 {
-    "/api/device/list/sync":    { "POST": { "event": "device-list-sync",           "desc": "Device list sync" } },
-    "/api/device/list":         { "POST": { "event": "device-list",           "desc": "Device list" } },
-    "/aiot/stat/get-boiler-usage":        { "POST": { "event": "stat-boiler-usage",           "desc": "Stat boiler usage" } }
+    "/api/device/list/sync":              { "POST": { "event": "device-list-sync",                "desc": "Device list sync" } },
+    "/api/device/list":                   { "POST": { "event": "device-list",                     "desc": "Device list" } },
+    "/aiot/stat/get-boiler-usage":        { "POST": { "event": "stat-boiler-usage",               "desc": "Stat boiler usage" } },
+    "/aiot/stat/get-boiler-combustion":   { "POST": { "event": "stat-boiler-combustion",          "desc": "Stat boiler combustion" } },
+    "/aiot/stat/get-boiler-gas-usage":    { "POST": { "event": "stat-boiler-gas-usage",           "desc": "Stat boiler gas usage" } }
 }
