@@ -73,17 +73,29 @@ module.exports = async (ctx, src, packet, listener) => {
 
     log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
 
-    const hours = [];
-    const values = [];
+    // const hours = [];
+    // const values = [];
+    let maxhh = null;
+    let maxVal = 0;
+    const chartData = [];
     for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
         const { hh, total_value } = queryInfo.data.rows[i];
-        hours.push(hh);
-        values.push(total_value);
+        // hours.push(hh);
+        // values.push(total_value);
+        if (total_value > maxVal) {
+            maxVal = total_value;
+            maxhh =hh;
+        }
+        const ret = {
+            hour: hh,
+            value: total_value,
+        }
+        chartData.push(ret);
     }
 
     const output = {
-        hours,
-        values,
+        message: `${maxhh}시에 보일러를\n자주 사용했어요!`,
+        chartData,
     };
 
     log.info(`${lhd} << complete get boiler usage`);
