@@ -69,6 +69,50 @@ SELECT COUNT(*) AS total_cnt, COUNT(DISTINCT id) AS distinct_id_cnt FROM public.
 ALTER TABLE public.tbl_device_his_inf ADD CONSTRAINT pk_tbl_device_his_inf PRIMARY KEY (id);
 
 
+/**
+ * tbl_device_his_stg
+ */
+-- DROP TABLE public.tbl_device_his_stg;
+
+-- create table
+CREATE TABLE public.tbl_device_his_stg (
+   rid        VARCHAR(32)   NOT NULL,
+   svc_name   VARCHAR(64)   NOT NULL,
+   type       SMALLINT      NOT NULL DEFAULT 1,
+   device_id  INTEGER       NOT NULL DEFAULT 0,
+   serial_num VARCHAR(17)   NOT NULL,
+   topic      TEXT          NOT NULL,
+   extra      JSONB,
+   orig_data  TEXT,
+   c_date     TIMESTAMP
+);
+
+-- add comment for column
+COMMENT ON TABLE public.tbl_device_his_stg IS 'device history stg raw log table';
+COMMENT ON COLUMN public.tbl_device_his_stg.rid IS 'surrogate key (identity)';
+COMMENT ON COLUMN public.tbl_device_his_stg.svc_name IS '장비소유 서비스 구분';
+COMMENT ON COLUMN public.tbl_device_his_stg.type IS '히스토리 구분. 1: 장비 mqtt publish';
+COMMENT ON COLUMN public.tbl_device_his_stg.device_id IS 'device numeric id (non-negative)';
+COMMENT ON COLUMN public.tbl_device_his_stg.serial_num IS 'device serial number';
+COMMENT ON COLUMN public.tbl_device_his_stg.topic IS 'mqtt topic';
+COMMENT ON COLUMN public.tbl_device_his_stg.extra IS '부가 정보';
+COMMENT ON COLUMN public.tbl_device_his_stg.orig_data IS 'original raw payload data';
+COMMENT ON COLUMN public.tbl_device_his_stg.c_date IS 'log created datetime (timestamp without timezone)';
+
+-- add index
+CREATE INDEX idx_tbl_device_his_stg_c_date_serial_num ON public.tbl_device_his_stg (c_date, serial_num);
+
+-- add comment for index
+COMMENT ON INDEX public.idx_tbl_device_his_stg_c_date_serial_num IS 'index for device history query by c_date, serial_num';
+
+-- add pk
+-- check pk uniqueness
+SELECT COUNT(*) AS total_cnt, COUNT(DISTINCT id) AS distinct_id_cnt FROM public.tbl_device_his_inf;
+
+-- add pk
+ALTER TABLE public.tbl_device_his_inf ADD CONSTRAINT pk_tbl_device_his_inf PRIMARY KEY (id);
+
+
 
 
 /**
