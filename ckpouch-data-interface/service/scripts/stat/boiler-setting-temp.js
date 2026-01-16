@@ -149,9 +149,9 @@ function isInThisWeek(yyyymmdd) {
 module.exports = async (ctx, src, packet, listener) => {
     const { log, utils, modules } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
-    const op = 'POST /stat/get-boiler-gas-usage -';
+    const op = 'POST /stat/get-boiler-setting-temp -';
     const lhd = `[${src}:${tid}] ${op}`;
-    log.info(`${lhd} >> start get boiler gas usage`);
+    log.info(`${lhd} >> start get boiler setting temp`);
 
     // define params
     // list
@@ -164,64 +164,15 @@ module.exports = async (ctx, src, packet, listener) => {
         startDate,
         endDate,
         serialNum,
-        isYear = false,
     } = packet.dt;
 
     if (!startDate || !endDate || !serialNum) {
-        log.warn(`${lhd} << failed get boiler gas usage. invalid params. startDate=[${startDate}], endDate=[${endDate}], serialNum=[${serialNum}]`);
+        log.warn(`${lhd} << failed get boiler setting temp. invalid params. startDate=[${startDate}], endDate=[${endDate}], serialNum=[${serialNum}]`);
         return modules.ckpush4.makeResponse('wrong_request', null, tid);
     }
-
-    // 연간 모드가 아닌데 8자리가 아니면 팅겨낸다.
-    if (!isYear && (startDate.length !== 8 || endDate.length !== 8)) {
-        log.warn(`${lhd} << failed get boiler gas usage. invalid startDate format. startDate=[${startDate}]`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    // 연간 모드가 아닌데 7주일치를 넘겨 조회하면 팅겨낸다.
-    const days = diffDaysInclusive(startDate, endDate);
-    if (!isYear && days > 7) {
-        log.warn(`${lhd} << failed get boiler gas usage. startDate and endDate must be within 7 days`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    if (!isYear && !isWithinSingleWeek(startDate, endDate)) {
-        log.warn(`${lhd} << failed get boiler gas usage. startDate and endDate must be in single week`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    // 연간 모드인데 length 가 YYYY가 아니면 팅겨냄
-    if (isYear && (startDate.length !== 4 || endDate.length !== 4)) {
-        log.warn(`${lhd} << failed get boiler gas usage. invalid startDate format. startDate=[${startDate}]`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    // 같은 년도를 조회하는게 아니면 팅겨낸다.
-    if (isYear && startDate !== endDate) {
-        log.warn(`${lhd} << failed get boiler gas usage. startDate and endDate must be same year`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    const subLength = isYear ? 6 : 8;
 
     let startDt = `${startDate}000000`;
     let endDt = `${endDate}235959`;
-
-    let lastWeekStartDt = null;
-    let lastWeekEndDt = null;
-    if (!isYear) {
-
-        let lwStart = getLastWeekRange(startDate, endDate).startDate;
-        let lwEnd = getLastWeekRange(startDate, endDate).endDate;
-
-        lastWeekStartDt = `${lwStart}000000`;
-        lastWeekEndDt = `${lwEnd}235959`;
-    }
-
-    if (isYear) {
-        startDt = `${startDate}0101000000`;
-        endDt = `${endDate}1231235959`;
-    }
 
     let queryInfo;
     try {
@@ -249,84 +200,88 @@ module.exports = async (ctx, src, packet, listener) => {
 
     log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
 
-    const chartData = [];
-    for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
-        const { yyyymmdd, heat_gas_usage_sum, hot_water_gas_usage_sum } = queryInfo.data.rows[i];
-        const ret = {
-            ymd: yyyymmdd,
-            heating: heat_gas_usage_sum,
-            hotWater: hot_water_gas_usage_sum,
-        }
-        chartData.push(ret);
+    const { heat_room_temp_avg, heat_floor_temp_avg, hot_water_tmp_avg } = queryInfo.data.rows[0];
+
+    try {
+        queryInfo = await utils.postgresql.query('history', `
+            SELECT group_type_cd FROM public.tbl_device
+                WHERE serial_num = $1 ORDER BY id DESC LIMIT 1;
+        `, [serialNum], lhd);
+    } catch (error) {
+        log.error(`${lhd} failed to get boiler setting temp avg. error: ${error.message}`);
+        return modules.ckpush4.makeResponse('failed', null, tid);
     }
+
+    if (!queryInfo.succ) {
+        log.warn(`${lhd} << failed get boiler setting temp avg. failed to query device model data. err=[${queryInfo.err}]`);
+        return modules.ckpush4.makeResponse('failed', null, tid);
+    }
+
+    log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
+
+    const { group_type_cd } = queryInfo.data.rows[0];
+
+    // 실온 온도 min, max
+    const roomMin = 5;
+    const roomMax = 40;
+
+    // 온돌 온도 min, max
+    let floorMin = 35, floorMax = 85;
+    if (['04', '05', '06', '0b', '0c', '21', '24', '25', '31', '33', '28', '29', '35', '37', '39', '0e', '2b', '40', '41', '42'].includes(group_type_cd)) {
+        floorMin = 35;
+        floorMax = 85;
+    } else if (['00', '01', '02', '03', '07', '08', '09', '0a', '20', '22', '23', '30', '32', '26', '27', '34', '36', '38', '2a'].includes(group_type_cd)) {
+        floorMin = 40;
+        floorMax = 85;
+    }
+
+    // 온수 온도 min, max
+    let waterMin = 30, waterMax = 60;
+    if (['06', '29', '39', '42', '04', '05', '0c', '21', '25', '31', '33', '2b', '28', '35', '37', '40', '41'].includes(group_type_cd)) {
+        waterMin = 30;
+        waterMax = 60;
+    } else if (['03', '27', '38', '00', '01', '02', '0a', '20', '30', '23', '32', '0e', '2a', '26', '34', '36'].includes(group_type_cd)) {
+        waterMin = 35;
+        waterMax = 60;
+    } else if (['07', '08', '09', '0b', '22', '24', '0e'].includes(group_type_cd)) {
+        waterMin = 0;
+        waterMax = 3;
+    }
+
+    const judgementRoom = Number(heat_room_temp_avg) == null ? '' : (Number(heat_room_temp_avg) >= 30 ? '많이 높아요!' : Number(heat_room_temp_avg) >= 25 ? '조금 높아요!' : '적당해요!');
+    const judgementFloor = Number(heat_floor_temp_avg) == null ? '' : (Number(heat_floor_temp_avg) >= 70 ? '많이 높아요!' : Number(heat_floor_temp_avg) >= 60 ? '조금 높아요!' : '적당해요!');
+    const judgementHotWater =  Number(hot_water_tmp_avg) > 3 ? ( Number(hot_water_tmp_avg) >= 50 ? '많이 높아요!' :  Number(hot_water_tmp_avg) >= 40 ? '조금 높아요!' : '적당해요!') : '';
+
+    const gaugeRoom = heat_room_temp_avg == null ? 0 : Math.round( (Number(heat_room_temp_avg) - roomMin) / (roomMax - roomMin) * 100 );
+    const gaugeFloor = heat_floor_temp_avg == null ? 0 : Math.round( (Number(heat_floor_temp_avg) - floorMin) / (floorMax - floorMin) * 100 );
+
+    log.debug(`${lhd} hot_water_tmp_avg=[${hot_water_tmp_avg}], waterMin=[${waterMin}], waterMax=[${waterMax}]`);
+    const gaugeHotWater = Math.round( (Number(hot_water_tmp_avg) - waterMin) / (waterMax - waterMin) * 100 );
 
     const output = {
-        chartData,
+        heatingRoom: {
+            title: "난방(실내) 평균",
+            subtitle: "사용 온도는",
+            temperature: heat_room_temp_avg == null ? '기록이 없어요!' : `${Number(heat_room_temp_avg).toFixed(1)}°C`,
+            status: `${judgementRoom}`,
+            gaugeValue: gaugeRoom
+        },
+        heatingFloor: {
+            title: "난방(온돌) 평균",
+            subtitle: "사용 온도는",
+            temperature: heat_floor_temp_avg == null ? '기록이 없어요!' : `${Number(heat_floor_temp_avg).toFixed(1)}°C`,
+            status: `${judgementFloor}`,
+            gaugeValue: gaugeFloor
+        },
+        hotWater: {
+            title: "온수 평균",
+            subtitle: "사용 온도는",
+            temperature: hot_water_tmp_avg == null ? '기록이 없어요!' : Number(hot_water_tmp_avg) > 3 ? `${Number(hot_water_tmp_avg).toFixed(1)}°C` : `${Math.floor(Number(hot_water_tmp_avg))}단`,
+            status: `${judgementHotWater}`,
+            gaugeValue: gaugeHotWater
+        }
     };
 
-    /*
-    "data": {
-            "heating": {
-                "title": "난방(실내온도) 평균",
-                "subtitle": "사용 온도는",
-                "temperature": "25°C",
-                "status": "적당해요!",
-                "gaugeValue": 65
-            },
-            "hotWater": {
-                "title": "온수 평균",
-                "subtitle": "사용 온도는",
-                "temperature": "48°C",
-                "status": "많이 높아요!",
-                "gaugeValue": 80
-            }
-        }
-    */
-
-
-    // compare with last week
-    if (!isYear) {
-        try {
-            queryInfo = await utils.postgresql.query('stat', `
-                SELECT
-                    -- 지난 주
-                    sum(value) FILTER (
-                    WHERE stat_date >= $1
-                      AND stat_date <= $2
-                    ) AS last_week_total,
-
-                    -- 조회 기간
-                    sum(value) FILTER (
-                    WHERE stat_date >= $3
-                      AND stat_date <= $4
-                    ) AS target_week_total
-
-                FROM public.tbl_stat_src2
-                WHERE serial_num = $5
-                  AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE');
-        `, [lastWeekStartDt, lastWeekEndDt, startDt, endDt, serialNum], lhd);
-        } catch (error) {
-            log.error(`${lhd} failed to get boiler total gas usage. error: ${error.message}`);
-            return modules.ckpush4.makeResponse('failed', null, tid);
-        }
-
-        if (!queryInfo.succ) {
-            log.warn(`${lhd} << failed get boiler total gas usage. failed to query stat data. err=[${queryInfo.err}]`);
-            return modules.ckpush4.makeResponse('failed', null, tid);
-        }
-
-        const { last_week_total, target_week_total } = queryInfo.data.rows[0];
-        const ret = {
-            title: isInThisWeek(endDate) ? "이번 주 전체 가스 사용량은" : "이 주의 전체 가스 사용량은",
-            message: last_week_total > target_week_total ? "지난 주 보다 줄었어요."
-                : last_week_total === target_week_total ? "지난 주와 같아요." : "지난 주 보다 늘었어요.",
-            lastWeekValue: last_week_total,
-            thisWeekValue: target_week_total,
-        }
-
-        output.comparison = ret;
-    }
-
-    log.info(`${lhd} << complete get boiler gas usage`);
+    log.info(`${lhd} << complete get boiler setting temp`);
     return modules.ckpush4.makeResponse('success', output, tid);
 };
