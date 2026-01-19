@@ -143,7 +143,53 @@ CREATE TYPE enum_volume_phase AS ENUM ('0단계', '1단계', '2단계', '3단계
 CREATE TYPE enum_lang_status AS ENUM ('한국어', '영어');
 
 /**
- * tbl_device_his_inf
+ * tbl_his_stg_parsed
+ */
+DROP TABLE public.tbl_his_stg_parsed;
+
+-- create table
+CREATE TABLE public.tbl_his_stg_parsed (
+   serial_num                                       CHAR(17) NOT NULL,
+   c_date                                           TIMESTAMP NOT NULL,
+   group_cd                                         CHAR(3) NOT NULL,
+   group_type_cd                                    CHAR(2) NOT NULL,
+
+   acc_heating_comb_time                            integer,
+   acc_hot_water_comb_time                          integer,
+   acc_heating_gas_volume                           integer,
+   acc_hot_water_gas_volume                         integer
+);
+
+-- add comment for column
+COMMENT ON TABLE public.tbl_his_stg_parsed                                                IS 'device history parsed stg command table';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.serial_num                                    IS 'device serial number';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.c_date                                        IS 'create_date';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.group_cd                                      IS '장비그룹';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.group_type_cd                                 IS '모델타입';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.acc_heating_comb_time                         IS '누적난방연소시간';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.acc_hot_water_comb_time                       IS '누적온수연소시간';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.acc_heating_gas_volume                        IS '누적난방가스사용량';
+COMMENT ON COLUMN public.tbl_his_stg_parsed.acc_hot_water_gas_volume                      IS '누적온수가스사용량';
+
+-- add index
+CREATE INDEX idx_tbl_his_stg_parsed_serial_num_c_date ON public.tbl_his_stg_parsed (serial_num, c_date);
+
+-- add comment for index
+COMMENT ON INDEX public.idx_tbl_his_stg_parsed_serial_num_c_date IS 'index for parsed device stg history query by serial_num, c_date';
+
+-- add pk
+-- check pk uniqueness
+-- SELECT COUNT(*) AS total_cnt, COUNT(DISTINCT id) AS distinct_id_cnt FROM public.tbl_his_stg_parsed;
+
+-- add pk
+-- ALTER TABLE public.tbl_his_stg_parsed ADD CONSTRAINT pk_tbl_his_stg_parsed PRIMARY KEY (id);
+
+
+
+
+
+/**
+ * tbl_his_inf_parsed
  */
 DROP TABLE public.tbl_his_inf_parsed;
 
