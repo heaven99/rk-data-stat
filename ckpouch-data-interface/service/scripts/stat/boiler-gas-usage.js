@@ -179,8 +179,7 @@ module.exports = async (ctx, src, packet, listener) => {
     }
 
     // 연간 모드가 아닌데 7주일치를 넘겨 조회하면 팅겨낸다.
-    const days = diffDaysInclusive(startDate, endDate);
-    if (!isYear && days > 7) {
+    if (!isYear && diffDaysInclusive(startDate, endDate) > 7) {
         log.warn(`${lhd} << failed get boiler gas usage. startDate and endDate must be within 7 days`);
         return modules.ckpush4.makeResponse('wrong_request', null, tid);
     }
