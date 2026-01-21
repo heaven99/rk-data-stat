@@ -5,6 +5,7 @@
         { "event": "stat-boiler-usage",         "protocol": "LOAD", "script": "/scripts/stat/boiler-usage.js" },
         { "event": "stat-boiler-combustion",         "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion.js" },
         { "event": "stat-boiler-gas-usage",         "protocol": "LOAD", "script": "/scripts/stat/boiler-gas-usage.js" },
-        { "event": "stat-boiler-setting-temp",         "protocol": "LOAD", "script": "/scripts/stat/boiler-setting-temp.js" }
+        { "event": "stat-boiler-setting-temp",         "protocol": "LOAD", "script": "/scripts/stat/boiler-setting-temp.js" },
+        { "event": "get-smart-briefing",            "protocol": "LOAD", "script": "/scripts/get-smart-briefing.js"}
     ]
 }

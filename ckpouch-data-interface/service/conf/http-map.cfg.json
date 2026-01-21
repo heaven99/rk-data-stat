@@ -4,5 +4,6 @@
     "/aiot/stat/get-boiler-usage":        { "POST": { "event": "stat-boiler-usage",               "desc": "Stat boiler usage" } },
     "/aiot/stat/get-boiler-combustion":   { "POST": { "event": "stat-boiler-combustion",          "desc": "Stat boiler combustion" } },
     "/aiot/stat/get-boiler-gas-usage":    { "POST": { "event": "stat-boiler-gas-usage",           "desc": "Stat boiler gas usage" } },
-    "/aiot/stat/get-boiler-setting-temp": { "POST": { "event": "stat-boiler-setting-temp",        "desc": "Stat boiler setting temperature" } }
+    "/aiot/stat/get-boiler-setting-temp": { "POST": { "event": "stat-boiler-setting-temp",        "desc": "Stat boiler setting temperature" } },
+    "/aiot/stat/get-smart-briefing":      { "POST": { "event": "get-smart-briefing",              "desc": "Get smart briefing" } }
 }
