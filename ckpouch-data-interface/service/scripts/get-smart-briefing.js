@@ -342,7 +342,7 @@ const sUtils = {
 
         // 4) BRIEFING_GAS_COMPARISON
         const gasComparisonItem = pageData.find(item => item.type === 'BRIEFING_GAS_COMPARISON');
-        if (gasComparisonItem && isPlainObject(gasComparisonItem)) {
+        if (gasComparisonItem && isPlainObject(gasComparisonItem.data)) {
             let queryInfo;
             try {
                 queryInfo = await utils.postgresql.query('stat', `
@@ -385,15 +385,44 @@ const sUtils = {
             gasComparisonItem.data = ret;
         }
 
-        // // 5) BRIEFING_GAS_DETAIL
-        // const gasDetailItem = pageData.find(item => item.type === 'BRIEFING_GAS_DETAIL');
-        // if (gasDetailItem && Array.isArray(gasDetailItem.data)) {
-        //     const arr = gasDetailItem.data;
-        //     if (arr.length === 12) {
-        //         gasDetailItem.data = arr[mockIdx] || arr[0];
-        //     }
-        // }
-        //
+        // 5) BRIEFING_GAS_DETAIL
+        const gasDetailItem = pageData.find(item => item.type === 'BRIEFING_GAS_DETAIL');
+        if (gasDetailItem && isPlainObject(gasDetailItem.data)) {
+            let queryInfo;
+            try {
+                queryInfo = await utils.postgresql.query('stat', `
+                    SELECT
+                        -- 1) HEAT_GAS_USAGE (시간 누적) : value 합
+                        sum(value) FILTER (WHERE data_type = 'HEATING_GAS_USAGE') AS heat_gas_usage_sum,
+        
+                        -- 2) HOT_WATER_GAS_USAGE (시간 누적) : value 합
+                        sum(value) FILTER (WHERE data_type = 'HOT_WATER_GAS_USAGE') AS hot_water_gas_usage_sum
+                    FROM public.tbl_stat_src2
+                    WHERE serial_num = $1
+                      AND stat_date >= $2
+                      AND stat_date <= $3
+                      AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE');
+                `, [serialNum, `${startStr}000000`, `${endStr}235959`], lhd);
+            } catch (error) {
+                log.error(`${lhd} failed to get boiler gas usage. error: ${error.message}`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            if (!queryInfo.succ) {
+                log.warn(`${lhd} << failed get boiler gas usage. failed to query stat data. err=[${queryInfo.err}]`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
+
+            const { heat_gas_usage_sum, hot_water_gas_usage_sum } = queryInfo.data.rows[0];
+            gasDetailItem.data = {
+                total: `이번주 가스 사용량은 총 ${Number(heat_gas_usage_sum) + Number(hot_water_gas_usage_sum)}㎡이며,`,
+                heating: `난방에 ${heat_gas_usage_sum}㎡,`,
+                hotWater: `온수에 ${hot_water_gas_usage_sum}㎡ 사용했어요!`
+            }
+        }
+
         // // 6) BRIEFING_TEMPERATURE_COMBINED
         // const temperatureCombinedItem = pageData.find(item => item.type === 'BRIEFING_TEMPERATURE_COMBINED');
         // if (temperatureCombinedItem && temperatureCombinedItem.data) {
