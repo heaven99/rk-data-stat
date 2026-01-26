@@ -63,7 +63,7 @@ const sValues = {
             //     "lastWeekValue": 9,
             //     "thisWeekValue": 7
             // },
-            "data": []
+            "data": {}
         },
         {
             "type": "BRIEFING_GAS_DETAIL",
@@ -72,13 +72,20 @@ const sValues = {
             //     "heating": "난방에 6㎡,",
             //     "hotWater": "온수에 3㎡ 사용했어요!"
             // },
-            "data": []
+            "data": {}
         },
         {
             "type": "BRIEFING_TEMPERATURE_COMBINED",
             "data": {
                 // "heating": {
-                //     "title": "난방(실내온도) 평균",
+                //     "title": "난방(실내) 평균",
+                //     "subtitle": "사용 온도는",
+                //     "temperature": "25°C",
+                //     "status": "적당해요!",
+                //     "gaugeValue": 65
+                // },
+                // "floor": {
+                //     "title": "난방(온돌) 평균",
                 //     "subtitle": "사용 온도는",
                 //     "temperature": "25°C",
                 //     "status": "적당해요!",
@@ -91,8 +98,9 @@ const sValues = {
                 //     "status": "많이 높아요!",
                 //     "gaugeValue": 80
                 // },
-                "heating": [],
-                "hotWater": []
+                "heating": {},
+                "floor": {},
+                "hotWater": {}
             }
         },
         // {
@@ -143,6 +151,10 @@ const sValues = {
     ],
 };
 
+function isPlainObject(value) {
+    return Object.prototype.toString.call(value) === '[object Object]';
+}
+
 // script utils
 const sUtils = {
     /**
@@ -175,12 +187,61 @@ const sUtils = {
         const end = new Date(base);
         end.setDate(base.getDate() - 1);
 
+        // briefDate - 7일
+        const lastStart = new Date(base);
+        lastStart.setDate(base.getDate() - 14);
+
+        // briefDate - 1일
+        const lastEnd = new Date(base);
+        lastEnd.setDate(base.getDate() - 8);
+
         return {
             startDate: start,
             endDate: end,
             startStr: sUtils.formatDateString(start),
             endStr: sUtils.formatDateString(end),
+            lastStartStr: sUtils.formatDateString(lastStart),
+            lastEndStr: sUtils.formatDateString(lastEnd),
         };
+    },
+
+    /**
+     * YYYYMMDD 날짜가 "이번 주(일~토)"에 속하는지 판단
+     *
+     * @param {string} yyyymmdd - YYYYMMDD
+     * @returns {boolean}
+     */
+    isInThisWeek: (yyyymmdd) => {
+        if (!/^\d{8}$/.test(yyyymmdd)) {
+            throw new Error(`Invalid date format: ${yyyymmdd}`);
+        }
+
+        const parse = (d) => {
+            const y = Number(d.slice(0, 4));
+            const m = Number(d.slice(4, 6));
+            const day = Number(d.slice(6, 8));
+            return new Date(y, m - 1, day);
+        };
+
+        const target = parse(yyyymmdd);
+        const today = new Date();
+
+        // 시간 제거 (날짜 비교용)
+        target.setHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
+
+        // JS 기준: 일=0, 월=1, ... 토=6
+        const todayDow = today.getDay();
+
+        // 이번 주 일요일
+        const thisSunday = new Date(today);
+        thisSunday.setDate(today.getDate() - todayDow);
+
+        // 이번 주 토요일
+        const thisSaturday = new Date(thisSunday);
+        thisSaturday.setDate(thisSunday.getDate() + 6);
+
+        return target >= thisSunday && target <= thisSaturday;
     },
 
     parseDateString: (yyyymmdd) => {
@@ -195,20 +256,20 @@ const sUtils = {
         String(date.getMonth() + 1).padStart(2, '0') +
         String(date.getDate()).padStart(2, '0'),
 
-    makePage: (ctx, cd, data, lhd) => {
+    makePage: (ctx, cd, data, lhd, tid) => {
         if (cd === sValues.PAGE_CD_SMART_BRIEFING_MAIN) {
-            return sUtils.makePageForSmartBriefingMain(ctx, data.serialNum, data.briefDate, lhd);
+            return sUtils.makePageForSmartBriefingMain(ctx, data.serialNum, data.briefDate, lhd, tid);
         }
 
         ctx.log.warn(`makePage failed. not supported page cd. expected [${sValues.PAGE_CD_SMART_BRIEFING_MAIN}], actual [${cd}]`);
         return [];
     },
 
-    makePageForSmartBriefingMain: async (ctx, serialNum, briefDate, lhd) => {
+    makePageForSmartBriefingMain: async (ctx, serialNum, briefDate, lhd, tid) => {
         const { log, utils, modules } = ctx;
         // 1) 기본 세팅
         const pageData = JSON.parse(JSON.stringify(sValues.PAGE_META_SMART_BRIEFING_MAIN));
-        const { startDate, endDate, startStr, endStr } = sUtils.getBriefWeekRange(briefDate);
+        const { startDate, endDate, startStr, endStr, lastStartStr, lastEndStr } = sUtils.getBriefWeekRange(briefDate);
 
         // 2) 헤더 날짜 범위 표시
         const notIncludeEndDayMonth = startDate.getMonth() !== endDate.getMonth();
@@ -279,15 +340,51 @@ const sUtils = {
             usageChartItem.data.message = `${toKoreanHour(maxhh)}에 보일러를\n자주 사용했어요!`;
         }
 
-        // // 4) BRIEFING_GAS_COMPARISON
-        // const gasComparisonItem = pageData.find(item => item.type === 'BRIEFING_GAS_COMPARISON');
-        // if (gasComparisonItem && Array.isArray(gasComparisonItem.data)) {
-        //     const arr = gasComparisonItem.data;
-        //     if (arr.length === 12) {
-        //         gasComparisonItem.data = arr[mockIdx] || arr[0];
-        //     }
-        // }
-        //
+        // 4) BRIEFING_GAS_COMPARISON
+        const gasComparisonItem = pageData.find(item => item.type === 'BRIEFING_GAS_COMPARISON');
+        if (gasComparisonItem && isPlainObject(gasComparisonItem)) {
+            let queryInfo;
+            try {
+                queryInfo = await utils.postgresql.query('stat', `
+                    SELECT
+                        -- 지난 주
+                        sum(value) FILTER (
+                    WHERE stat_date >= $1
+                      AND stat_date <= $2
+                    ) AS last_week_total,
+
+                    -- 조회 기간
+                        sum(value) FILTER (
+                    WHERE stat_date >= $3
+                      AND stat_date <= $4
+                    ) AS target_week_total
+
+                    FROM public.tbl_stat_src2
+                    WHERE serial_num = $5
+                      AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE');
+                `, [`${lastStartStr}000000`, `${lastEndStr}235959`, `${startStr}000000`, `${endStr}235959`, serialNum], lhd);
+            } catch (error) {
+                log.error(`${lhd} failed to get boiler total gas usage. error: ${error.message}`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            if (!queryInfo.succ) {
+                log.warn(`${lhd} << failed get boiler total gas usage. failed to query stat data. err=[${queryInfo.err}]`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            const { last_week_total, target_week_total } = queryInfo.data.rows[0];
+            const ret = {
+                title: sUtils.isInThisWeek(endStr) ? "이번 주 전체 가스 사용량은" : "이 주의 전체 가스 사용량은",
+                message: last_week_total > target_week_total ? "지난 주 보다 줄었어요."
+                    : last_week_total === target_week_total ? "지난 주와 같아요." : "지난 주 보다 늘었어요.",
+                lastWeekValue: last_week_total,
+                thisWeekValue: target_week_total,
+            }
+
+            gasComparisonItem.data = ret;
+        }
+
         // // 5) BRIEFING_GAS_DETAIL
         // const gasDetailItem = pageData.find(item => item.type === 'BRIEFING_GAS_DETAIL');
         // if (gasDetailItem && Array.isArray(gasDetailItem.data)) {
@@ -410,7 +507,7 @@ module.exports = async (ctx, src, packet, listener) => {
         }, tid);
     }
 
-    output.data = await sUtils.makePage(ctx, cd, { serialNum, briefDate }, lhd);
+    output.data = await sUtils.makePage(ctx, cd, { serialNum, briefDate }, lhd, tid);
 
     log.info(`${lhd} << complete get smart briefing`);
     return modules.ckpush4.makeResponse('success', output, tid);
