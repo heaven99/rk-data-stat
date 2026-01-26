@@ -178,6 +178,8 @@ const sUtils = {
         return {
             startDate: start,
             endDate: end,
+            startStr: sUtils.formatDateString(start),
+            endStr: sUtils.formatDateString(end),
         };
     },
 
@@ -193,294 +195,120 @@ const sUtils = {
         String(date.getMonth() + 1).padStart(2, '0') +
         String(date.getDate()).padStart(2, '0'),
 
-    makePage: (ctx, cd, data) => {
+    makePage: (ctx, cd, data, lhd) => {
         if (cd === sValues.PAGE_CD_SMART_BRIEFING_MAIN) {
-            return sUtils.makePageForSmartBriefingMain(ctx, data.deviceId);
+            return sUtils.makePageForSmartBriefingMain(ctx, data.serialNum, data.briefDate, lhd);
         }
 
         ctx.log.warn(`makePage failed. not supported page cd. expected [${sValues.PAGE_CD_SMART_BRIEFING_MAIN}], actual [${cd}]`);
         return [];
     },
 
-    // makePageForSmartBriefingMain: async (ctx, deviceId) => {
-    //     // define variables
-    //     const pageData = JSON.parse(JSON.stringify(sValues.PAGE_META_SMART_BRIEFING_MAIN));
-    //     const { sunday: startDate, saturday: endDate } = sUtils.getThisWeekRange();
-    //
-    //     // set date range
-    //     // 이번 주 범위 계산
-    //     const includeEndDayMonth = startDate.getMonth() !== endDate.getMonth();
-    //     let weekDayString = '';
-    //     weekDayString += `${startDate.getMonth() + 1}월 ${startDate.getDate()}일`;
-    //     weekDayString += ' - ';
-    //     weekDayString += includeEndDayMonth ? `${endDate.getMonth() + 1}월 ${endDate.getDate()}일` : `${endDate.getDate()}일`;
-    //
-    //     pageData[0].data.dateRange = weekDayString;
-    //
-    //     // mock 데이터 추출
-    //     const deviceData = await sUtils.getMockDeviceData(ctx, deviceId);
-    //
-    //     // 데이터를 기반으로 BRIEFING_USAGE_CHART 항목을 채운다.
-    //     // 사용 횟수는 시간별 데이터의 used 가 true 이면 1회로 간주하여 합산한다.
-    //     const usageChartItem = pageData.find(item => item.type === 'BRIEFING_USAGE_CHART');
-    //     if (usageChartItem) {
-    //         const chartData = [];
-    //         const hourUsedMap = {};
-    //         let peakHourIndex = 0;
-    //         let peakHourValue = 0;
-    //
-    //         // 이게 왜 1 만 나오지?
-    //         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    //             const dateKey = ctx.utils.timestampToString(d, 'YYYYMMDD');
-    //             for (let h = 0; h < 24; h++) {
-    //                 const hourKey = String(h).padStart(2, '0');
-    //                 if (!hourUsedMap[hourKey]) {
-    //                     hourUsedMap[hourKey] = 0;
-    //                 }
-    //                 const hourData = deviceData.history?.[dateKey]?.[hourKey] || { used: false };
-    //                 const value = hourData.used ? 1 : 0;
-    //                 hourUsedMap[hourKey] += value;
-    //                 // ctx.log.debug(`hourUsedMap update. hourKey [${hourKey}], orig [${hourData.used}], value [${value}], hourUsedMap[hourKey] [${hourUsedMap[hourKey]}]`);
-    //             }
-    //         }
-    //
-    //         for (let h = 0; h < 24; h++) {
-    //             const hourKey = String(h).padStart(2, '0');
-    //             const value = hourUsedMap[hourKey];
-    //             chartData.push({ hour: h, value });
-    //
-    //             if (value > peakHourValue) {
-    //                 peakHourValue = value;
-    //                 peakHourIndex = h;
-    //             }
-    //         }
-    //
-    //         usageChartItem.data.chartData = chartData;
-    //         usageChartItem.data.peakHourIndex = peakHourIndex;
-    //     }
-    //
-    //     // TODO 데이터를 기반으로 BRIEFING_GAS_COMPARISON 항목을 채운다.
-    //     // 이번 주 전체 가스 사용량과 지난 주 전체 가스 사용량을 계산하여 채운다.
-    //     const gasComparisonItem = pageData.find(item => item.type === 'BRIEFING_GAS_COMPARISON');
-    //     if (gasComparisonItem) {
-    //         let thisWeekTotal = 0;
-    //         let lastWeekTotal = 0;
-    //
-    //         // 이번 주 계산
-    //         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    //             const dateKey = ctx.utils.timestampToString(d, 'YYYYMMDD');
-    //             for (let h = 0; h < 24; h++) {
-    //                 const hourKey = String(h).padStart(2, '0');
-    //                 const hourData = deviceData.history?.[dateKey]?.[hourKey] || { heatingGasUsage: 0, hotWaterGasUsage: 0 };
-    //                 thisWeekTotal += hourData.heatingGasUsage + hourData.hotWaterGasUsage;
-    //             }
-    //         }
-    //
-    //         // 지난 주 계산
-    //         const lastWeekSunday = new Date(startDate);
-    //         lastWeekSunday.setDate(startDate.getDate() - 7);
-    //         const lastWeekSaturday = new Date(endDate);
-    //         lastWeekSaturday.setDate(endDate.getDate() - 7);
-    //
-    //         for (let d = new Date(lastWeekSunday); d <= lastWeekSaturday; d.setDate(d.getDate() + 1)) {
-    //             const dateKey = ctx.utils.timestampToString(d, 'YYYYMMDD');
-    //             for (let h = 0; h < 24; h++) {
-    //                 const hourKey = String(h).padStart(2, '0');
-    //                 const hourData = deviceData.history?.[dateKey]?.[hourKey] || { heatingGasUsage: 0, hotWaterGasUsage: 0 };
-    //                 lastWeekTotal += hourData.heatingGasUsage + hourData.hotWaterGasUsage;
-    //             }
-    //         }
-    //
-    //         gasComparisonItem.data.thisWeekValue = thisWeekTotal;
-    //         gasComparisonItem.data.lastWeekValue = lastWeekTotal;
-    //     }
-    //
-    //     // TODO 데이터를 기반으로 BRIEFING_GAS_DETAIL 항목을 채운다.
-    //     // 이번 주 난방 가스 사용량과 온수 가스 사용량을 계산하여 채운다.
-    //     const gasDetailItem = pageData.find(item => item.type === 'BRIEFING_GAS_DETAIL');
-    //     if (gasDetailItem) {
-    //         let heatingTotal = 0;
-    //         let hotWaterTotal = 0;
-    //
-    //         // 이번 주 계산
-    //         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    //             const dateKey = ctx.utils.timestampToString(d, 'YYYYMMDD');
-    //             for (let h = 0; h < 24; h++) {
-    //                 const hourKey = String(h).padStart(2, '0');
-    //                 const hourData = deviceData.history?.[dateKey]?.[hourKey] || { heatingGasUsage: 0, hotWaterGasUsage: 0 };
-    //                 heatingTotal += hourData.heatingGasUsage;
-    //                 hotWaterTotal += hourData.hotWaterGasUsage;
-    //             }
-    //         }
-    //         gasDetailItem.data.total = `이번주 가스 사용량은 총 ${heatingTotal + hotWaterTotal}㎡이며,`;
-    //         gasDetailItem.data.heating = `난방에 ${heatingTotal}㎡,`;
-    //         gasDetailItem.data.hotWater = `온수에 ${hotWaterTotal}㎡ 사용했어요!`;
-    //     }
-    //
-    //
-    //     // TODO 데이터를 기반으로 BRIEFING_TEMPERATURE_COMBINED 항목을 채운다.
-    //     const temperatureCombinedItem = pageData.find(item => item.type === 'BRIEFING_TEMPERATURE_COMBINED');
-    //     if (temperatureCombinedItem) {
-    //         let heatingTempSum = 0;
-    //         let heatingTempCount = 0;
-    //         let hotWaterTempSum = 0;
-    //         let hotWaterTempCount = 0;
-    //
-    //         // 이번 주 계산
-    //         for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-    //             const dateKey = ctx.utils.timestampToString(d, 'YYYYMMDD');
-    //             for (let h = 0; h < 24; h++) {
-    //                 const hourKey = String(h).padStart(2, '0');
-    //                 const hourData = deviceData.history?.[dateKey]?.[hourKey];
-    //                 if (hourData) {
-    //                     if (hourData.heatingSetTemp) {
-    //                         heatingTempSum += hourData.heatingSetTemp;
-    //                         heatingTempCount++;
-    //                     }
-    //                     if (hourData.hotWaterSetTemp) {
-    //                         hotWaterTempSum += hourData.hotWaterSetTemp;
-    //                         hotWaterTempCount++;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //
-    //         const heatingAvgTemp = heatingTempCount ? Math.round(heatingTempSum / heatingTempCount) : 0;
-    //         const hotWaterAvgTemp = hotWaterTempCount ? Math.round(hotWaterTempSum / hotWaterTempCount) : 0;
-    //
-    //         temperatureCombinedItem.data.heating.temperature = `${heatingAvgTemp}°C`;
-    //         temperatureCombinedItem.data.hotWater.temperature = `${hotWaterAvgTemp}°C`;
-    //     }
-    //
-    //     // TODO 데이터를 기반으로 BRIEFING_RESERVATION 항목을 채운다.
-    //     const reservationItemIdx = pageData.findIndex(item => item.type === 'BRIEFING_RESERVATION');
-    //     if (reservationItemIdx !== -1) {
-    //         if (!deviceData.reserve || deviceData.reserve.length <= 0) {
-    //             // 예약이 없으면 항목 자체를 제거
-    //             pageData.splice(reservationItemIdx, 1);
-    //         } else {
-    //             const reservationItem = pageData[reservationItemIdx];
-    //             const reservations = deviceData.reserve.map(reserve => ({
-    //                 timeRange: reserve.timeRange,
-    //                 schedule: reserve.schedule,
-    //                 mode: reserve.mode,
-    //                 temperature: `${reserve.temperature}℃`,
-    //             }));
-    //             reservationItem.data.reservations = reservations;
-    //             reservationItem.data.title = `다음주 보일러 예약이 ${reservations.length}건 있습니다`;
-    //         }
-    //     }
-    //
-    //     // get weather data
-    //     // 내일 날짜의 날씨 데이터를 가져온다.
-    //     const getWeatherDataInfo = await ctx.utils.redis.sendCommand('mock', 'GET', [`${sValues.REDIS_KEY_PREFIX_WEATHER_DATA}${deviceId}.${ctx.utils.timestampToString(Date.now() + 86400 * 1000, 'YYYYMMDD')}`], true, '');
-    //     if (getWeatherDataInfo.succ && getWeatherDataInfo.data) {
-    //         ctx.log.debug(`get weather data from redis. deviceId [${deviceId}]`);
-    //         const weatherData = getWeatherDataInfo.data;
-    //         if (weatherData.data.length > 0) {
-    //             for (const weatherInfo of weatherData.data) {
-    //                 if (weatherInfo.category !== 'T1H') {
-    //                     continue;
-    //                 }
-    //
-    //                 if (Number(weatherInfo.obsrValue) < 0) {
-    //                     pageData.push({
-    //                         "type": "BRIEFING_FREEZE",
-    //                         "data": {
-    //                             "title": `내일은 영하 ${Math.abs(Number(weatherInfo.obsrValue))}˚C까지 떨어져요`,
-    //                             "actionText": "동결 방지 모드 켜기>",
-    //                             "text": "동결 방지 모드를 켜두시면\n동파를 예방할 수 있습니다."
-    //                         }
-    //                     })
-    //                 }
-    //
-    //                 break;
-    //             }
-    //         }
-    //         // TODO 날씨 데이터를 기반으로 페이지의 일부 항목을 수정할 수 있다.
-    //     } else {
-    //         ctx.log.warn(`getWeatherDataInfo failed to read redis data. deviceId [${deviceId}], error [${getWeatherDataInfo.errMsg}]`);
-    //     }
-    //
-    //     return pageData;
-    // },
-
-    makePageForSmartBriefingMain: async (ctx, deviceId) => {
+    makePageForSmartBriefingMain: async (ctx, serialNum, briefDate, lhd) => {
+        const { log, utils, modules } = ctx;
         // 1) 기본 세팅
         const pageData = JSON.parse(JSON.stringify(sValues.PAGE_META_SMART_BRIEFING_MAIN));
-        const { startDate, endDate } = sUtils.getBriefWeekRange();
+        const { startDate, endDate, startStr, endStr } = sUtils.getBriefWeekRange(briefDate);
 
         // 2) 헤더 날짜 범위 표시
-        const includeEndDayMonth = startDate.getMonth() !== endDate.getMonth();
+        const notIncludeEndDayMonth = startDate.getMonth() !== endDate.getMonth();
         let weekDayString = '';
         weekDayString += `${startDate.getMonth() + 1}월 ${startDate.getDate()}일`;
         weekDayString += ' - ';
-        weekDayString += includeEndDayMonth ? `${endDate.getMonth() + 1}월 ${endDate.getDate()}일` : `${endDate.getDate()}일`;
+        weekDayString += notIncludeEndDayMonth ? `${endDate.getMonth() + 1}월 ${endDate.getDate()}일` : `${endDate.getDate()}일`;
         if (pageData[0]?.type === 'BRIEFING_HEADER') {
             pageData[0].data.dateRange = weekDayString;
         }
 
-        // 3) BRIEFING_USAGE_CHART: 12개 중 mockIdx 하나만 사용 + 해당 데이터로 peakHourIndex 재계산
+        // 3) BRIEFING_USAGE_CHART
         const usageChartItem = pageData.find(item => item.type === 'BRIEFING_USAGE_CHART');
         if (usageChartItem && usageChartItem.data && Array.isArray(usageChartItem.data.chartData)) {
-            const raw = usageChartItem.data.chartData;
-            // 메타가 [ [24시간], [24시간], ... x12 ] 형태일 때만 처리
-            if (Array.isArray(raw) && raw.length === 12 && Array.isArray(raw[0])) {
-                const selected = raw[mockIdx] || raw[0];
-                usageChartItem.data.chartData = selected;
+            let queryInfo;
+            try {
+                queryInfo = await utils.postgresql.query('stat', `
+                    SELECT
+                        substring(stat_date, 9, 2) AS hh,
+                        sum(value) AS total_value
+                    FROM public.tbl_stat_src2
+                    WHERE serial_num = $1
+                      AND stat_date >= $2
+                      AND stat_date <= $3
+                      AND data_type  IN ('HOT_WATER_COMBUSTION', 'HEATING_COMBUSTION')
+                    GROUP BY substring(stat_date, 9, 2)
+                    ORDER BY hh;
+                `, [serialNum, `${startStr}000000`, `${endStr}235959`], lhd);
+            } catch (error) {
+                log.error(`${lhd} failed to get boiler usage. error: ${error.message}`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
 
-                // 피크 시간 재계산
-                let peakHourIndex = 0;
-                let peakHourValue = -1;
-                for (const { hour, value } of selected) {
-                    if (value > peakHourValue) {
-                        peakHourValue = value;
-                        peakHourIndex = hour;
-                    }
+            if (!queryInfo.succ) {
+                log.warn(`${lhd} << failed get boiler usage. failed to query stat data. err=[${queryInfo.err}]`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
+
+            // const hours = [];
+            // const values = [];
+            let maxhh = null;
+            let maxVal = 0;
+            for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
+                const { hh, total_value } = queryInfo.data.rows[i];
+                // hours.push(hh);
+                // values.push(total_value);
+                if (total_value > maxVal) {
+                    maxVal = total_value;
+                    maxhh =hh;
                 }
-                usageChartItem.data.peakHourIndex = peakHourIndex;
-
-
-                // ✅ peakHourIndex에 맞춰 메시지도 갱신
-                const toKoreanHour = (h) => {
-                    const period = h < 12 ? '오전' : '오후';
-                    const h12 = h % 12 === 0 ? 12 : h % 12;
-                    return `${period} ${h12}시`;
-                };
-                usageChartItem.data.message = `${toKoreanHour(peakHourIndex)}에 보일러를\n자주 사용했어요!`;
+                const ret = {
+                    hour: hh,
+                    value: total_value,
+                }
+                usageChartItem.data.chartData.push(ret);
             }
+
+            usageChartItem.data.peakHourIndex = maxhh;
+
+            const toKoreanHour = (h) => {
+                const period = h < 12 ? '오전' : '오후';
+                const h12 = h % 12 === 0 ? 12 : h % 12;
+                return `${period} ${h12}시`;
+            };
+
+            usageChartItem.data.message = `${toKoreanHour(maxhh)}에 보일러를\n자주 사용했어요!`;
         }
 
-        // 4) BRIEFING_GAS_COMPARISON: 12개 배열 중 mockIdx 하나만 남김
-        const gasComparisonItem = pageData.find(item => item.type === 'BRIEFING_GAS_COMPARISON');
-        if (gasComparisonItem && Array.isArray(gasComparisonItem.data)) {
-            const arr = gasComparisonItem.data;
-            if (arr.length === 12) {
-                gasComparisonItem.data = arr[mockIdx] || arr[0];
-            }
-        }
-
-        // 5) BRIEFING_GAS_DETAIL: 12개 배열 중 mockIdx 하나만 남김
-        const gasDetailItem = pageData.find(item => item.type === 'BRIEFING_GAS_DETAIL');
-        if (gasDetailItem && Array.isArray(gasDetailItem.data)) {
-            const arr = gasDetailItem.data;
-            if (arr.length === 12) {
-                gasDetailItem.data = arr[mockIdx] || arr[0];
-            }
-        }
-
-        // 6) BRIEFING_TEMPERATURE_COMBINED: heating/hotWater 각각 12개 배열 → mockIdx 단일 객체
-        const temperatureCombinedItem = pageData.find(item => item.type === 'BRIEFING_TEMPERATURE_COMBINED');
-        if (temperatureCombinedItem && temperatureCombinedItem.data) {
-            const td = temperatureCombinedItem.data;
-
-            if (Array.isArray(td.heating) && td.heating.length === 12) {
-                td.heating = td.heating[mockIdx] || td.heating[0];
-            }
-            if (Array.isArray(td.hotWater) && td.hotWater.length === 12) {
-                td.hotWater = td.hotWater[mockIdx] || td.hotWater[0];
-            }
-        }
+        // // 4) BRIEFING_GAS_COMPARISON
+        // const gasComparisonItem = pageData.find(item => item.type === 'BRIEFING_GAS_COMPARISON');
+        // if (gasComparisonItem && Array.isArray(gasComparisonItem.data)) {
+        //     const arr = gasComparisonItem.data;
+        //     if (arr.length === 12) {
+        //         gasComparisonItem.data = arr[mockIdx] || arr[0];
+        //     }
+        // }
+        //
+        // // 5) BRIEFING_GAS_DETAIL
+        // const gasDetailItem = pageData.find(item => item.type === 'BRIEFING_GAS_DETAIL');
+        // if (gasDetailItem && Array.isArray(gasDetailItem.data)) {
+        //     const arr = gasDetailItem.data;
+        //     if (arr.length === 12) {
+        //         gasDetailItem.data = arr[mockIdx] || arr[0];
+        //     }
+        // }
+        //
+        // // 6) BRIEFING_TEMPERATURE_COMBINED
+        // const temperatureCombinedItem = pageData.find(item => item.type === 'BRIEFING_TEMPERATURE_COMBINED');
+        // if (temperatureCombinedItem && temperatureCombinedItem.data) {
+        //     const td = temperatureCombinedItem.data;
+        //
+        //     if (Array.isArray(td.heating) && td.heating.length === 12) {
+        //         td.heating = td.heating[mockIdx] || td.heating[0];
+        //     }
+        //     if (Array.isArray(td.hotWater) && td.hotWater.length === 12) {
+        //         td.hotWater = td.hotWater[mockIdx] || td.hotWater[0];
+        //     }
+        // }
 
         // 7) 예약/날씨 처리를 위해 mock 장비 데이터 로드 (메타 치환과는 무관)
         // const deviceData = await sUtils.getMockDeviceData(ctx, deviceId);
@@ -540,9 +368,6 @@ const sUtils = {
     },
 };
 
-// no script state
-const sState = {};
-
 module.exports = async (ctx, src, packet, listener) => {
     const { log, modules, utils } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
@@ -555,21 +380,11 @@ module.exports = async (ctx, src, packet, listener) => {
         return { ckError: 'E001', ckMessage: 'Not supported interface' };
     }
 
-    // get ckp4 data
-    const { req } = listener;
-    const getRequestInfo = await modules.ckpush4.getRequestInfo(req, lhd);
-    const { apiType, app, user, group, company, token } = getRequestInfo;
-    if (apiType !== modules.values.API_TYPE_BEARER) {
-        log.warn(`${lhd} << failed get smart briefing. not support api type. expected [${modules.values.API_TYPE_BEARER}], actual [${apiType}]`);
-        return { ckError: 'E001', ckMessage: 'Wrong request', data: [] };
-    }
-
     // reset lhd
-    lhd = `[${user?.user_id || src}:${tid}] ${op} -`;
+    lhd = `[${src}:${tid}] ${op} -`;
     log.info(`${lhd} >> start get smart briefing. data [${JSON.stringify(packet.dt)}]`);
 
-    const { filter = {} } = packet.dt;
-    const { cd, serialNum, briefDate } = filter;
+    const { cd, serialNum, briefDate } = packet.dt;
     const output = {
         data: [],
     };
@@ -595,7 +410,7 @@ module.exports = async (ctx, src, packet, listener) => {
         }, tid);
     }
 
-    output.data = await sUtils.makePage(ctx, cd, { serialNum });
+    output.data = await sUtils.makePage(ctx, cd, { serialNum, briefDate }, lhd);
 
     log.info(`${lhd} << complete get smart briefing`);
     return modules.ckpush4.makeResponse('success', output, tid);
