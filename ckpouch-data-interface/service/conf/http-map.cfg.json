@@ -1,9 +1,13 @@
 {
-    "/api/device/list/sync":              { "POST": { "event": "device-list-sync",                "desc": "Device list sync" } },
-    "/api/device/list":                   { "POST": { "event": "device-list",                     "desc": "Device list" } },
-    "/aiot/stat/get-boiler-usage":        { "POST": { "event": "stat-boiler-usage",               "desc": "Stat boiler usage" } },
-    "/aiot/stat/get-boiler-combustion":   { "POST": { "event": "stat-boiler-combustion",          "desc": "Stat boiler combustion" } },
-    "/aiot/stat/get-boiler-gas-usage":    { "POST": { "event": "stat-boiler-gas-usage",           "desc": "Stat boiler gas usage" } },
-    "/aiot/stat/get-boiler-setting-temp": { "POST": { "event": "stat-boiler-setting-temp",        "desc": "Stat boiler setting temperature" } },
-    "/aiot/stat/get-smart-briefing":      { "POST": { "event": "get-smart-briefing",              "desc": "Get smart briefing" } }
+    "/api/device/list/sync":                   { "POST": { "event": "device-list-sync",                "desc": "Device list sync" } },
+    "/api/device/list":                        { "POST": { "event": "device-list",                     "desc": "Device list" } },
+    "/aiot/stat/get-boiler-usage":             { "POST": { "event": "stat-boiler-usage",               "desc": "Stat boiler usage" } },
+    "/aiot/stat/get-boiler-combustion":        { "POST": { "event": "stat-boiler-combustion",          "desc": "Stat boiler combustion" } },
+    "/aiot/stat/get-boiler-combustion/week":   { "POST": { "event": "stat-boiler-combustion-week",     "desc": "Stat boiler combustion weekly" } },
+    "/aiot/stat/get-boiler-combustion/year":   { "POST": { "event": "stat-boiler-combustion-year",     "desc": "Stat boiler combustion yearly" } },
+    "/aiot/stat/get-boiler-gas-usage":         { "POST": { "event": "stat-boiler-gas-usage",           "desc": "Stat boiler gas usage" } },
+    "/aiot/stat/get-boiler-gas-usage/week":    { "POST": { "event": "stat-boiler-gas-usage-week",      "desc": "Stat boiler gas usage weekly" } },
+    "/aiot/stat/get-boiler-gas-usage/year":    { "POST": { "event": "stat-boiler-gas-usage-year",      "desc": "Stat boiler gas usage yearly" } },
+    "/aiot/stat/get-boiler-setting-temp":      { "POST": { "event": "stat-boiler-setting-temp",        "desc": "Stat boiler setting temperature" } },
+    "/aiot/stat/get-smart-briefing":           { "POST": { "event": "get-smart-briefing",              "desc": "Get smart briefing" } }
 }
