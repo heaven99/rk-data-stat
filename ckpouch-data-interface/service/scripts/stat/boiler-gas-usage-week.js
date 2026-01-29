@@ -1,23 +1,67 @@
-// startDate/endDate: 'YYYYMMDD'
-function diffDaysInclusive(startDate, endDate) {
-    const parse = (yyyymmdd) => {
-        if (!/^\d{8}$/.test(yyyymmdd)) throw new Error(`Invalid date: ${yyyymmdd}`);
-        const y = Number(yyyymmdd.slice(0, 4));
-        const m = Number(yyyymmdd.slice(4, 6));
-        const d = Number(yyyymmdd.slice(6, 8));
-        // 로컬 자정 기준 (KST 환경이면 그대로 OK)
-        return new Date(y, m - 1, d);
-    };
+function getMonthWeekRange(year, month, week) {
+    // month: 1~12
+    const firstDayOfMonth = new Date(year, month - 1, 1);
 
-    const s = parse(startDate);
-    const e = parse(endDate);
+    // 해당 월의 첫 주 일요일 찾기
+    const firstSunday = new Date(firstDayOfMonth);
+    firstSunday.setDate(
+        firstDayOfMonth.getDate() - firstDayOfMonth.getDay()
+    );
 
-    // end < start 방지
-    if (e < s) return -1;
+    // week 번째 주의 시작(일)과 끝(토)
+    const startDate = new Date(firstSunday);
+    startDate.setDate(firstSunday.getDate() + (week - 1) * 7);
 
-    const msPerDay = 24 * 60 * 60 * 1000;
-    // inclusive: 20250101~20250107 => 7일
-    return Math.floor((e - s) / msPerDay) + 1;
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+
+    const format = (d) =>
+        `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+
+    return [format(startDate), format(endDate)];
+}
+
+function dayFormatter (yyyymmdd) {
+    return yyyymmdd.slice(0, 4) + '년 ' + yyyymmdd.slice(4, 6) + '월 ' + yyyymmdd.slice(6, 8) + '일 ' + '00:00:00';
+}
+
+function getCalendarMonthRange(year, month) {
+    // month: 1~12
+    const firstOfMonth = new Date(year, month - 1, 1);
+    const lastOfMonth = new Date(year, month, 0); // 다음달 0일 = 이번달 마지막날
+
+    // 달력상 맨 앞(그 달이 속한 첫 주의 일요일)
+    const start = new Date(firstOfMonth);
+    start.setDate(firstOfMonth.getDate() - firstOfMonth.getDay()); // day: 0(일)~6(토)
+
+    // 달력상 맨 뒤(그 달이 속한 마지막 주의 토요일)
+    const end = new Date(lastOfMonth);
+    end.setDate(lastOfMonth.getDate() + (6 - lastOfMonth.getDay()));
+
+    const format = (d) =>
+        `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+
+    return [format(start), format(end)];
+}
+
+function getLastWeekOfMonth(year, month) {
+    // 해당 월 1일
+    const firstDay = new Date(year, month - 1, 1);
+    // 해당 월 마지막 날
+    const lastDay = new Date(year, month, 0);
+
+    // 1일이 속한 주의 일요일
+    const firstWeekStart = new Date(firstDay);
+    firstWeekStart.setDate(firstDay.getDate() - firstDay.getDay());
+
+    // 마지막 날이 속한 주의 토요일
+    const lastWeekEnd = new Date(lastDay);
+    lastWeekEnd.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+
+    // 주 단위 차이 계산
+    const diffDays = (lastWeekEnd - firstWeekStart) / (1000 * 60 * 60 * 24);
+
+    return Math.floor(diffDays / 7) + 1;
 }
 
 /**
@@ -149,84 +193,47 @@ function isInThisWeek(yyyymmdd) {
 module.exports = async (ctx, src, packet, listener) => {
     const { log, utils, modules } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
-    const op = 'POST /stat/get-boiler-gas-usage -';
+    const op = 'POST /stat/get-boiler-gas-usage/week -';
     const lhd = `[${src}:${tid}] ${op}`;
-    log.info(`${lhd} >> start get boiler gas usage`);
+    log.info(`${lhd} >> start get boiler gas usage week`);
 
     // define params
     // list
     /*
-     * startDate : {number}
-     * endDate : {string}
-     * serialNum : {string}
+     * month : {number}
+     * week : {number}
+     * year : {number}
+     * deviceId : {string}
      */
     const {
-        startDate,
-        endDate,
-        serialNum,
-        isYear = false,
+        week,
+        month,
+        deviceId,
+        year,
     } = packet.dt;
 
-    if (!startDate || !endDate || !serialNum) {
-        log.warn(`${lhd} << failed get boiler gas usage. invalid params. startDate=[${startDate}], endDate=[${endDate}], serialNum=[${serialNum}]`);
+    if (!deviceId || !year || !month || !week) {
+        log.warn(`${lhd} << failed get boiler gas usage. invalid params. week=[${week}], month=[${month}], year=[${year}], deviceId=[${deviceId}]`);
         return modules.ckpush4.makeResponse('wrong_request', null, tid);
     }
 
-    // 연간 모드가 아닌데 8자리가 아니면 팅겨낸다.
-    if (!isYear && (startDate.length !== 8 || endDate.length !== 8)) {
-        log.warn(`${lhd} << failed get boiler gas usage. invalid startDate format. startDate=[${startDate}]`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    // 연간 모드가 아닌데 7주일치를 넘겨 조회하면 팅겨낸다.
-    if (!isYear && diffDaysInclusive(startDate, endDate) > 7) {
-        log.warn(`${lhd} << failed get boiler gas usage. startDate and endDate must be within 7 days`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    if (!isYear && !isWithinSingleWeek(startDate, endDate)) {
-        log.warn(`${lhd} << failed get boiler gas usage. startDate and endDate must be in single week`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    // 연간 모드인데 length 가 YYYY가 아니면 팅겨냄
-    if (isYear && (startDate.length !== 4 || endDate.length !== 4)) {
-        log.warn(`${lhd} << failed get boiler gas usage. invalid startDate format. startDate=[${startDate}]`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    // 같은 년도를 조회하는게 아니면 팅겨낸다.
-    if (isYear && startDate !== endDate) {
-        log.warn(`${lhd} << failed get boiler gas usage. startDate and endDate must be same year`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
-    }
-
-    const subLength = isYear ? 6 : 8;
+    const [startDate, endDate] = getMonthWeekRange(year, month, week);
+    const [calendarStartDate, calendarEndDate] = getCalendarMonthRange(year, month);
 
     let startDt = `${startDate}000000`;
     let endDt = `${endDate}235959`;
 
-    let lastWeekStartDt = null;
-    let lastWeekEndDt = null;
-    if (!isYear) {
+    let lwStart = getLastWeekRange(startDate, endDate).startDate;
+    let lwEnd = getLastWeekRange(startDate, endDate).endDate;
 
-        let lwStart = getLastWeekRange(startDate, endDate).startDate;
-        let lwEnd = getLastWeekRange(startDate, endDate).endDate;
-
-        lastWeekStartDt = `${lwStart}000000`;
-        lastWeekEndDt = `${lwEnd}235959`;
-    }
-
-    if (isYear) {
-        startDt = `${startDate}0101000000`;
-        endDt = `${endDate}1231235959`;
-    }
+    let lastWeekStartDt = `${lwStart}000000`;
+    let lastWeekEndDt = `${lwEnd}235959`;
 
     let queryInfo;
     try {
         queryInfo = await utils.postgresql.query('stat', `
             SELECT
-                substring(stat_date, 1, ${subLength}) AS yyyymmdd,
+                substring(stat_date, 1, 8) AS yyyymmdd,
 
                 -- 1) HEAT_GAS_USAGE (시간 누적) : value 합
                 sum(value) FILTER (WHERE data_type = 'HEATING_GAS_USAGE') AS heat_gas_usage_sum,
@@ -238,9 +245,9 @@ module.exports = async (ctx, src, packet, listener) => {
               AND stat_date >= $2
               AND stat_date <= $3
               AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE')
-            GROUP BY substring(stat_date, 1, ${subLength})
+            GROUP BY substring(stat_date, 1, 8)
             ORDER BY yyyymmdd;
-        `, [serialNum, startDt, endDt], lhd);
+        `, [deviceId, startDt, endDt], lhd);
     } catch (error) {
         log.error(`${lhd} failed to get boiler gas usage. error: ${error.message}`);
         return modules.ckpush4.makeResponse('failed', null, tid);
@@ -253,64 +260,66 @@ module.exports = async (ctx, src, packet, listener) => {
 
     log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
 
-    const chartData = [];
+    const dates = [];
+    const heating = [];
+    const hotWater = [];
     for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymmdd, heat_gas_usage_sum, hot_water_gas_usage_sum } = queryInfo.data.rows[i];
-        const ret = {
-            ymd: yyyymmdd,
-            heating: heat_gas_usage_sum,
-            hotWater: hot_water_gas_usage_sum,
-        }
-        chartData.push(ret);
+        dates.push(dayFormatter(yyyymmdd));
+        heating.push(heat_gas_usage_sum);
+        hotWater.push(hot_water_gas_usage_sum);
     }
 
     const output = {
-        chartData,
+        dates,
+        heating,
+        hotWater,
     };
 
-
-    // compare with last week
-    if (!isYear) {
-        try {
-            queryInfo = await utils.postgresql.query('stat', `
-                SELECT
-                    -- 지난 주
-                    sum(value) FILTER (
+    try {
+        queryInfo = await utils.postgresql.query('stat', `
+            SELECT
+                -- 지난 주
+                sum(value) FILTER (
                     WHERE stat_date >= $1
                       AND stat_date <= $2
                     ) AS last_week_total,
 
                     -- 조회 기간
-                    sum(value) FILTER (
+                sum(value) FILTER (
                     WHERE stat_date >= $3
                       AND stat_date <= $4
-                    ) AS target_week_total
+                    ) AS target_week_total,
+                
+                    -- 월 전체
+                sum(value) FILTER (
+                    WHERE stat_date >= $5
+                    AND stat_date <= $6
+                    ) AS monthly_total
 
-                FROM public.tbl_stat_src2
-                WHERE serial_num = $5
-                  AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE');
-        `, [lastWeekStartDt, lastWeekEndDt, startDt, endDt, serialNum], lhd);
-        } catch (error) {
-            log.error(`${lhd} failed to get boiler total gas usage. error: ${error.message}`);
-            return modules.ckpush4.makeResponse('failed', null, tid);
-        }
-
-        if (!queryInfo.succ) {
-            log.warn(`${lhd} << failed get boiler total gas usage. failed to query stat data. err=[${queryInfo.err}]`);
-            return modules.ckpush4.makeResponse('failed', null, tid);
-        }
-
-        const { last_week_total, target_week_total } = queryInfo.data.rows[0];
-        const ret = {
-            title: isInThisWeek(endDate) ? "이번 주 전체 가스 사용량은" : "이 주의 전체 가스 사용량은",
-            message: last_week_total > target_week_total ? "지난 주 보다 줄었어요."
-                : last_week_total === target_week_total ? "지난 주와 같아요." : "지난 주 보다 늘었어요.",
-            lastWeekValue: last_week_total,
-            thisWeekValue: target_week_total,
-        }
-
-        output.comparison = ret;
+            FROM public.tbl_stat_src2
+            WHERE serial_num = $7
+              AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE');
+        `, [lastWeekStartDt, lastWeekEndDt, startDt, endDt, `${calendarStartDate}000000`, `${calendarEndDate}235959`, deviceId], lhd);
+    } catch (error) {
+        log.error(`${lhd} failed to get boiler total gas usage. error: ${error.message}`);
+        return modules.ckpush4.makeResponse('failed', null, tid);
     }
+
+    if (!queryInfo.succ) {
+        log.warn(`${lhd} << failed get boiler total gas usage. failed to query stat data. err=[${queryInfo.err}]`);
+        return modules.ckpush4.makeResponse('failed', null, tid);
+    }
+
+    const { last_week_total, target_week_total, monthly_total } = queryInfo.data.rows[0];
+    if (isInThisWeek(endDate)) {
+        output.cardType = target_week_total > last_week_total ? 0 : 1;
+    } else {
+        const avg = monthly_total / getLastWeekOfMonth(year, month);
+        output.cardType = target_week_total > avg ? 2 : 3;
+    }
+
+    output.total = target_week_total;
 
     log.info(`${lhd} << complete get boiler gas usage`);
     return modules.ckpush4.makeResponse('success', output, tid);
