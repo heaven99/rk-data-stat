@@ -423,18 +423,154 @@ const sUtils = {
             }
         }
 
-        // // 6) BRIEFING_TEMPERATURE_COMBINED
-        // const temperatureCombinedItem = pageData.find(item => item.type === 'BRIEFING_TEMPERATURE_COMBINED');
-        // if (temperatureCombinedItem && temperatureCombinedItem.data) {
-        //     const td = temperatureCombinedItem.data;
-        //
-        //     if (Array.isArray(td.heating) && td.heating.length === 12) {
-        //         td.heating = td.heating[mockIdx] || td.heating[0];
-        //     }
-        //     if (Array.isArray(td.hotWater) && td.hotWater.length === 12) {
-        //         td.hotWater = td.hotWater[mockIdx] || td.hotWater[0];
-        //     }
-        // }
+        // 6) BRIEFING_TEMPERATURE_COMBINED
+        const temperatureCombinedItem = pageData.find(item => item.type === 'BRIEFING_TEMPERATURE_COMBINED');
+        if (temperatureCombinedItem && isPlainObject(temperatureCombinedItem.data)) {
+            let queryInfo;
+            try {
+                queryInfo = await utils.postgresql.query('stat', `
+                    SELECT
+                        -- 1) HEAT room 평균
+                        avg(value) FILTER (WHERE data_type = 'HEATING_ROOM_TEMP_AVG' AND value is not null) AS heating_room_temp_avg,
+        
+                        -- 1) HEAT floor 평균
+                        avg(value) FILTER (WHERE data_type = 'HEATING_FLOOR_TEMP_AVG' AND value is not null) AS heating_floor_temp_avg,
+        
+                        -- 2) HOT_WATER 평균
+                        avg(value) FILTER (WHERE data_type = 'HOT_WATER_TEMP_AVG' and value is not null ) AS hot_water_temp_avg
+                    FROM public.tbl_stat_src2
+                    WHERE serial_num = $1
+                      AND stat_date >= $2
+                      AND stat_date <= $3
+                      AND data_type IN ('HEATING_ROOM_TEMP_AVG', 'HEATING_FLOOR_TEMP_AVG', 'HOT_WATER_TEMP_AVG');
+                `, [serialNum, `${startStr}000000`, `${endStr}235959`], lhd);
+            } catch (error) {
+                log.error(`${lhd} failed to get avg setting temp. error: ${error.message}`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            if (!queryInfo.succ) {
+                log.warn(`${lhd} << failed get avg setting temp. failed to query stat data. err=[${queryInfo.err}]`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
+
+            const { heating_room_temp_avg, heating_floor_temp_avg, hot_water_temp_avg } = queryInfo.data.rows[0];
+
+
+            try {
+                queryInfo = await utils.postgresql.query('history', `
+            SELECT group_type_cd FROM public.tbl_device
+                WHERE serial_num = $1 ORDER BY id DESC LIMIT 1;
+        `, [serialNum], lhd);
+            } catch (error) {
+                log.error(`${lhd} failed to get boiler setting temp avg. error: ${error.message}`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            if (!queryInfo.succ) {
+                log.warn(`${lhd} << failed get boiler setting temp avg. failed to query device model data. err=[${queryInfo.err}]`);
+                return modules.ckpush4.makeResponse('failed', null, tid);
+            }
+
+            log.debug(`${lhd} query result [${JSON.stringify(queryInfo)}]`);
+
+            const { group_type_cd } = queryInfo.data.rows[0];
+
+            // 실온 온도 min, max
+            const roomMin = 5;
+            const roomMax = 40;
+
+            // 온돌 온도 min, max
+            let floorMin = 35, floorMax = 85;
+            if (['04', '05', '06', '0b', '0c', '21', '24', '25', '31', '33', '28', '29', '35', '37', '39', '0e', '2b', '40', '41', '42'].includes(group_type_cd)) {
+                floorMin = 35;
+                floorMax = 85;
+            } else if (['00', '01', '02', '03', '07', '08', '09', '0a', '20', '22', '23', '30', '32', '26', '27', '34', '36', '38', '2a'].includes(group_type_cd)) {
+                floorMin = 40;
+                floorMax = 85;
+            }
+
+            // 온수 온도 min, max
+            let waterMin = 30, waterMax = 60;
+            if (['06', '29', '39', '42', '04', '05', '0c', '21', '25', '31', '33', '2b', '28', '35', '37', '40', '41'].includes(group_type_cd)) {
+                waterMin = 30;
+                waterMax = 60;
+            } else if (['03', '27', '38', '00', '01', '02', '0a', '20', '30', '23', '32', '0e', '2a', '26', '34', '36'].includes(group_type_cd)) {
+                waterMin = 35;
+                waterMax = 60;
+            } else if (['07', '08', '09', '0b', '22', '24', '0e'].includes(group_type_cd)) {
+                waterMin = 0;
+                waterMax = 3;
+            }
+
+            const gaugeRoom = heating_room_temp_avg == null ? 0 : Math.round( (Number(heating_room_temp_avg) - roomMin) / (roomMax - roomMin) * 100 );
+            const gaugeFloor = heating_floor_temp_avg == null ? 0 : Math.round( (Number(heating_floor_temp_avg) - floorMin) / (floorMax - floorMin) * 100 );
+
+            log.debug(`${lhd} hot_water_temp_avg=[${hot_water_temp_avg}], waterMin=[${waterMin}], waterMax=[${waterMax}]`);
+            const gaugeHotWater = Math.round( (Number(hot_water_temp_avg) - waterMin) / (waterMax - waterMin) * 100 );
+
+
+            let floorText;
+            let roomText;
+            let hotwaterText;
+            if (heating_floor_temp_avg) {
+                if (heating_floor_temp_avg >= 30 && heating_floor_temp_avg < 41) {
+                    floorText = '절약에 좋아요';
+                } else if (heating_floor_temp_avg >= 41 && heating_floor_temp_avg < 51) {
+                    floorText = '겨울에 따뜻한 온도에요';
+                } else if (heating_floor_temp_avg >= 51) {
+                    floorText = '주의! 너무 뜨거워요!';
+                }
+            }
+
+            if (heating_room_temp_avg) {
+                if (heating_room_temp_avg >= 18 && heating_room_temp_avg < 21) {
+                    roomText = '절약에 좋아요';
+                } else if (heating_room_temp_avg >= 21 && heating_room_temp_avg < 25) {
+                    roomText = '겨울에 따뜻한 온도에요';
+                } else if (heating_room_temp_avg >= 25) {
+                    roomText = '주의! 너무 뜨거워요!';
+                }
+            }
+
+            if (hot_water_temp_avg) {
+                if (hot_water_temp_avg >= 30 && hot_water_temp_avg < 41) {
+                    hotwaterText = '절약에 좋아요';
+                } else if (hot_water_temp_avg >= 41 && hot_water_temp_avg < 46) {
+                    hotwaterText = '피부 자극이 적은 온도에요';
+                } else if (hot_water_temp_avg >= 46) {
+                    hotwaterText = '주의! 너무 뜨거워요!';
+                }
+            }
+
+
+
+            temperatureCombinedItem.data = {
+                heating: heating_room_temp_avg ? {
+                    title: "난방(실내) 평균",
+                    subtitle: "사용 온도는",
+                    temperature: `${Number(heating_room_temp_avg).toFixed(1)}°C`,
+                    status: roomText,
+                    gaugeValue: gaugeRoom
+                } : undefined,
+                floor: heating_floor_temp_avg ? {
+                    title: "난방(온돌) 평균",
+                    subtitle: "사용 온도는",
+                    temperature: `${Number(heating_floor_temp_avg).toFixed(1)}°C`,
+                    status: floorText,
+                    gaugeValue: gaugeFloor
+                } : undefined,
+                hotWater: hot_water_temp_avg ? {
+                    title: "온수 평균",
+                    subtitle: "사용 온도는",
+                    temperature: `${Number(hot_water_temp_avg).toFixed(1)}°C`,
+                    status: hotwaterText,
+                    gaugeValue: gaugeHotWater
+                } : undefined,
+            }
+        }
 
         // 7) 예약/날씨 처리를 위해 mock 장비 데이터 로드 (메타 치환과는 무관)
         // const deviceData = await sUtils.getMockDeviceData(ctx, deviceId);
