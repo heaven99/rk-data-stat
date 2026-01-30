@@ -313,10 +313,12 @@ module.exports = async (ctx, src, packet, listener) => {
 
     const { last_week_total, target_week_total, monthly_total } = queryInfo.data.rows[0];
     if (isInThisWeek(endDate)) {
-        output.cardType = target_week_total > last_week_total ? 0 : 1;
+        output.cardType = target_week_total > last_week_total ? 0
+            : target_week_total === last_week_total ? 2 : 1;
     } else {
         const avg = monthly_total / getLastWeekOfMonth(year, month);
-        output.cardType = target_week_total > avg ? 2 : 3;
+        output.cardType = target_week_total > avg ? 3
+            : target_week_total === avg ? 5 : 4;
     }
 
     output.total = target_week_total;

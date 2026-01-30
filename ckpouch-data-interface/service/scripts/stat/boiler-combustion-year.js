@@ -2,6 +2,11 @@ function dayFormatter (yyyymm) {
     return yyyymm.slice(0, 4) + '년 ' + yyyymm.slice(4, 6) + '월 ';
 }
 
+function isThisYear(year) {
+    const currentYear = new Date().getFullYear();
+    return Number(year) === currentYear;
+}
+
 module.exports = async (ctx, src, packet, listener) => {
     const { log, utils, modules } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
@@ -84,7 +89,7 @@ module.exports = async (ctx, src, packet, listener) => {
         total: total.reduce((acc, cur) => acc + cur, 0)
     };
 
-    output.cardType = 4;
+    output.cardType = isThisYear(year) ? 14 : 15;
 
     log.info(`${lhd} << complete get boiler combustion`);
     return modules.ckpush4.makeResponse('success', output, tid);
