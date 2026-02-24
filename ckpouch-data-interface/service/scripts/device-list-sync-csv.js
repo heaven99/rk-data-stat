@@ -8,6 +8,46 @@ const path = require('node:path');
 // script values
 const sValues = {
     DATE_FORMAT: 'YYYYMMDDHHmm',
+
+    CSV_HEADER: [
+        { key: 'sync_date', label: 'sync_date' },
+        { key: 'id', label: 'id' },
+        { key: 'serial_num', label: 'serial_num' },
+        { key: 'latitude', label: 'latitude' },
+        { key: 'longitude', label: 'longitude' },
+        { key: 'c_date', label: 'c_date' },
+        { key: 'group_cd', label: 'group_cd' },
+        { key: 'group_type_cd', label: 'group_type_cd' },
+        { key: 'nx', label: 'nx' },
+        { key: 'ny', label: 'ny' },
+        { key: 'station_id', label: 'station_id' },
+        // { key: 'temperature', label: 'temperature' },
+        // { key: 'humidity', label: 'humidity' },
+        // { key: 'wind_speed', label: 'wind_speed' },
+        // { key: 'pty', label: 'pty' },
+        // { key: 'sky_state', label: 'sky_state' },
+    ],
+
+    // for test
+    SAMPLE_DEVICE_LIST: [
+        {
+            "id": 11057,
+            "serial_num": "ab:cd:ef:12:34:56",
+            "latitude": 37.5112,
+            "longitude": 126.9741,
+            "c_date": 1747645482,
+            "group_cd": "f06",
+            "group_type_cd": "05",
+            "nx": 60,
+            "ny": 126,
+            "station_id": 90,
+            "temperature": 2,
+            "humidity": 70,
+            "wind_speed": 1,
+            "pty": null,
+            "sky_state": 1
+        }
+    ]
 };
 
 // script state
@@ -31,7 +71,7 @@ const sUtils = {
         }
 
 
-        const filePathTemplate = conf['device-list']?.['save-path'] || '';
+        const filePathTemplate = conf['device-list']?.['save-path-csv'] || '';
         log.debug(`${lhd} file path template [${filePathTemplate}]`);
 
         const YYYY = date.slice(0, 4);
@@ -65,7 +105,7 @@ const sUtils = {
 module.exports = async (ctx, src, packet, listener) => {
     const { log, utils } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
-    const op = 'POST /api/device/list/sync -';
+    const op = 'POST /api/device/list/sync/csv -';
     const lhd = `[${src}:${tid}] ${op}`;
     log.info(`${lhd} >> start sync device list`);
 
@@ -96,7 +136,7 @@ module.exports = async (ctx, src, packet, listener) => {
         return { result: 'FAIL', reason: 'INVALID_FILE_PATH' };
     }
 
-    // 디렉토리 생성 및 파일 저장
+    // 디렉토리 생성 및 CSV 파일 저장
     try {
         const dir = path.dirname(filePath);
         
@@ -106,22 +146,55 @@ module.exports = async (ctx, src, packet, listener) => {
             log.info(`${lhd} created directory [${dir}]`);
         }
         
-        // 파일 존재 여부 확인
+        // 파일 존재 여부 확인 및 초기화
         const fileExists = fs.existsSync(filePath);
         if (fileExists) {
             log.info(`${lhd} file already exists. will overwrite [${filePath}]`);
+            fs.unlinkSync(filePath); // 기존 파일 삭제
+        }
+
+        // CSV 헤더 작성
+        const headerLine = sValues.CSV_HEADER.map(h => h.label).join(',') + '\n';
+        fs.appendFileSync(filePath, headerLine, 'utf8');
+        log.debug(`${lhd} wrote CSV header to file`);
+
+        // 각 디바이스 데이터를 CSV 라인으로 변환하여 append
+        let count = 0;
+        for (const device of list) {
+            const cDate = device.c_date ? utils.timestampToString(device.c_date * 1000, 'YYYY-MM-DD HH:mm:ss', false) : '';
+            const row = [
+                syncDate,
+                device.id || '',
+                device.serial_num || '',
+                device.latitude || '',
+                device.longitude || '',
+                cDate,
+                device.group_cd || '',
+                device.group_type_cd || '',
+                typeof device.nx === 'number' ? device.nx : '',
+                typeof device.ny === 'number' ? device.ny : '',
+                typeof device.station_id === 'number' ? device.station_id : '',
+                // typeof device.temperature === 'number' ? device.temperature : '',
+                // typeof device.humidity === 'number' ? device.humidity : '',
+                // typeof device.wind_speed === 'number' ? device.wind_speed : '',
+                // typeof device.pty === 'number' ? device.pty : '',
+                // typeof device.sky_state === 'number' ? device.sky_state : '',
+            ];
+            const csvLine = row.join(',') + '\n';
+            fs.appendFileSync(filePath, csvLine, 'utf8');
+            count++;
+
+            if (count % 1000 === 0) {
+                log.info(`${lhd} wrote [${count}/${list.length}] devices to CSV file`);
+            }
         }
         
-        // list를 JSON 문자열로 변환하여 파일에 저장
-        const jsonData = JSON.stringify({ date, list });
-        fs.writeFileSync(filePath, jsonData, 'utf8');
-        log.info(`${lhd} saved device list to file [${filePath}], count [${list.length}]`);
+        log.info(`${lhd} saved device list to CSV file [${filePath}], count [${count}]`);
     } catch (error) {
-        log.error(`${lhd} failed to save device list to file [${filePath}]. error: ${error.message}`);
+        log.error(`${lhd} failed to save device list to CSV file [${filePath}]. error: ${error.message}`);
 
         log.warn(`${lhd} << failed sync device list. failed to save device list to file. err [${error.message}]`);
         return { result: 'FAIL', reason: 'SERVER_ERROR' };
-
     }
 
     // set expire date

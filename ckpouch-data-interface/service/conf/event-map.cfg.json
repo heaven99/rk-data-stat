@@ -1,15 +1,18 @@
 {
     "event-map": [
-        { "event": "device-list-sync",    "protocol": "LOAD", "script": "/scripts/device-list-sync.js" },
-        { "event": "device-list",         "protocol": "LOAD", "script": "/scripts/device-list.js" },
-        { "event": "stat-boiler-usage",         "protocol": "LOAD", "script": "/scripts/stat/boiler-usage.js" },
-        { "event": "stat-boiler-combustion",         "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion.js" },
-        { "event": "stat-boiler-combustion-week",         "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion-week.js" },
-        { "event": "stat-boiler-combustion-year",         "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion-year.js" },
+        { "event": "device-list-sync-json",         "protocol": "LOAD", "script": "/scripts/device-list-sync-json.js" },
+        { "event": "device-list-sync-csv",          "protocol": "LOAD", "script": "/scripts/device-list-sync-csv.js" },
+        { "event": "device-list-json",              "protocol": "LOAD", "script": "/scripts/device-list-json.js" },
+        { "event": "device-list-csv",               "protocol": "LOAD", "script": "/scripts/device-list-csv.js" },
+        { "event": "weather-sync",                  "protocol": "LOAD", "script": "/scripts/weather-sync-csv.js" },
+        { "event": "stat-boiler-usage",             "protocol": "LOAD", "script": "/scripts/stat/boiler-usage.js" },
+        { "event": "stat-boiler-combustion",        "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion.js" },
+        { "event": "stat-boiler-combustion-week",   "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion-week.js" },
+        { "event": "stat-boiler-combustion-year",   "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion-year.js" },
         { "event": "stat-boiler-gas-usage",         "protocol": "LOAD", "script": "/scripts/stat/boiler-gas-usage.js" },
-        { "event": "stat-boiler-gas-usage-week",         "protocol": "LOAD", "script": "/scripts/stat/boiler-gas-usage-week.js" },
-        { "event": "stat-boiler-gas-usage-year",         "protocol": "LOAD", "script": "/scripts/stat/boiler-gas-usage-year.js" },
-        { "event": "stat-boiler-setting-temp",         "protocol": "LOAD", "script": "/scripts/stat/boiler-setting-temp.js" },
+        { "event": "stat-boiler-gas-usage-week",    "protocol": "LOAD", "script": "/scripts/stat/boiler-gas-usage-week.js" },
+        { "event": "stat-boiler-gas-usage-year",    "protocol": "LOAD", "script": "/scripts/stat/boiler-gas-usage-year.js" },
+        { "event": "stat-boiler-setting-temp",      "protocol": "LOAD", "script": "/scripts/stat/boiler-setting-temp.js" },
         { "event": "get-smart-briefing",            "protocol": "LOAD", "script": "/scripts/get-smart-briefing.js"}
     ]
 }
