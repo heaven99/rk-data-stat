@@ -25,6 +25,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const {
         deviceId,
         year,
+        devMode, // ✅ 추가
     } = packet.dt;
 
     if (!deviceId || !year) {
@@ -32,6 +33,41 @@ module.exports = async (ctx, src, packet, listener) => {
         return modules.ckpush4.makeResponse('wrong_request', null, tid);
     }
 
+    // =========================================================
+    // ✅ devMode=true면 mock 내려주고 종료 (DB 조회 안 함)
+    // =========================================================
+    if (devMode === true) {
+        const months = [];
+        const heating = [];
+        const hotWater = [];
+
+        for (let m = 1; m <= 12; m += 1) {
+            const yyyymm = `${year}${String(m).padStart(2, '0')}`;
+            months.push(dayFormatter(yyyymm));
+
+            // 보기 좋은 고정 mock (원하면 규칙 바꿔도 됨)
+            // "sum(value)"라 숫자만
+            heating.push(10 + m);           // 11..22
+            hotWater.push(5 + (m % 4));     // 6,7,8,5 반복
+        }
+
+        const totalVal = heating.reduce((a, b) => a + b, 0) + hotWater.reduce((a, b) => a + b, 0);
+
+        const output = {
+            months,
+            heating,
+            hotWater,
+            total: totalVal,
+            cardType: isThisYear(year) ? 14 : 15,
+        };
+
+        log.info(`${lhd} << complete get boiler combustion year (devMode mock). year=[${year}]`);
+        return modules.ckpush4.makeResponse('success', output, tid);
+    }
+
+    // =========================================================
+    // ✅ 아래는 기존 로직 그대로 (DB 조회)
+    // =========================================================
     const startDate = `${year}0101`;
     const endDate = `${year}1231`;
 
@@ -74,7 +110,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const hotWater = [];
     const total = [];
 
-    for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
+    for (let i = 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymm, heat_combustion_sum, hot_water_combustion_sum } = queryInfo.data.rows[i];
         months.push(dayFormatter(yyyymm));
         heating.push(heat_combustion_sum);
