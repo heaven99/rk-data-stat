@@ -25,6 +25,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const {
         deviceId,
         year,
+        devMode, // ✅ 추가
     } = packet.dt;
 
     if (!deviceId || !year) {
@@ -32,6 +33,42 @@ module.exports = async (ctx, src, packet, listener) => {
         return modules.ckpush4.makeResponse('wrong_request', null, tid);
     }
 
+    // =========================================================
+    // ✅ devMode=true면 mock 내려주고 종료 (DB 조회 안 함)
+    // =========================================================
+    if (devMode === true) {
+        const months = [];
+        const heating = [];
+        const hotWater = [];
+
+        for (let m = 1; m <= 12; m += 1) {
+            const yyyymm = `${year}${String(m).padStart(2, '0')}`;
+            months.push(dayFormatter(yyyymm));
+
+            // 가스 사용량 mock (숫자)
+            heating.push(20 + m);        // 21..32
+            hotWater.push(8 + (m % 5));  // 9,10,11,12,8 반복
+        }
+
+        const totalVal =
+            heating.reduce((a, b) => a + b, 0) +
+            hotWater.reduce((a, b) => a + b, 0);
+
+        const output = {
+            months,
+            heating,
+            hotWater,
+            total: totalVal,
+            cardType: isThisYear(year) ? 6 : 7,
+        };
+
+        log.info(`${lhd} << complete get boiler gas usage year (devMode mock). year=[${year}]`);
+        return modules.ckpush4.makeResponse('success', output, tid);
+    }
+
+    // =========================================================
+    // ✅ 아래는 기존 로직 그대로 (DB 조회)
+    // =========================================================
     const startDate = `${year}0101`;
     const endDate = `${year}1231`;
 
@@ -44,16 +81,16 @@ module.exports = async (ctx, src, packet, listener) => {
             SELECT
                 substring(stat_date, 1, 6) AS yyyymm,
 
-                -- 1) HEAT_COMBUSTION (시간 누적) : value 합
-                sum(value) FILTER (WHERE data_type = 'HEATING_COMBUSTION') AS heat_gas_usage_sum,
+                -- 1) HEAT_GAS_USAGE (시간 누적) : value 합
+                sum(value) FILTER (WHERE data_type = 'HEATING_GAS_USAGE') AS heat_gas_usage_sum,
 
-                -- 2) HOT_WATER_COMBUSTION (시간 누적) : value 합
-                sum(value) FILTER (WHERE data_type = 'HOT_WATER_COMBUSTION') AS hot_water_gas_usage_sum
+                -- 2) HOT_WATER_GAS_USAGE (시간 누적) : value 합
+                sum(value) FILTER (WHERE data_type = 'HOT_WATER_GAS_USAGE') AS hot_water_gas_usage_sum
             FROM public.tbl_stat_src2
             WHERE serial_num = $1
               AND stat_date >= $2
               AND stat_date <= $3
-              AND data_type IN ('HEATING_COMBUSTION', 'HOT_WATER_COMBUSTION')
+              AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE')
             GROUP BY substring(stat_date, 1, 6)
             ORDER BY yyyymm;
         `, [deviceId, startDt, endDt], lhd);
@@ -74,7 +111,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const hotWater = [];
     const total = [];
 
-    for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
+    for (let i = 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymm, heat_gas_usage_sum, hot_water_gas_usage_sum } = queryInfo.data.rows[i];
         months.push(dayFormatter(yyyymm));
         heating.push(heat_gas_usage_sum);
