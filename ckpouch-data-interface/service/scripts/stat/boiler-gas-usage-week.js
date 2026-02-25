@@ -210,6 +210,7 @@ module.exports = async (ctx, src, packet, listener) => {
         month,
         deviceId,
         year,
+        devMode, // ✅ 추가
     } = packet.dt;
 
     if (!deviceId || !year || !month || !week) {
@@ -229,6 +230,63 @@ module.exports = async (ctx, src, packet, listener) => {
     let lastWeekStartDt = `${lwStart}000000`;
     let lastWeekEndDt = `${lwEnd}235959`;
 
+    // =========================================================
+    // ✅ devMode=true면 mock 내려주고 종료 (DB 조회 안 함)
+    // =========================================================
+    if (devMode === true) {
+        const parseYmd = (yyyymmdd) => {
+            const y = Number(yyyymmdd.slice(0, 4));
+            const m = Number(yyyymmdd.slice(4, 6));
+            const d = Number(yyyymmdd.slice(6, 8));
+            return new Date(y, m - 1, d);
+        };
+
+        const formatYmd = (d) =>
+            d.getFullYear().toString() +
+            String(d.getMonth() + 1).padStart(2, '0') +
+            String(d.getDate()).padStart(2, '0');
+
+        const s = parseYmd(startDate);
+
+        const dates = [];
+        const heating = [];
+        const hotWater = [];
+
+        // 7일치 mock 생성
+        for (let i = 0; i < 7; i += 1) {
+            const dd = new Date(s);
+            dd.setDate(s.getDate() + i);
+            const ymd = formatYmd(dd);
+
+            dates.push(dayFormatter(ymd));
+
+            // 가스 사용량 mock (숫자만)
+            // 보기 좋게 조금씩 변하게
+            heating.push(3 + i);         // 3..9
+            hotWater.push(2 + (i % 2));  // 2,3,2,3...
+        }
+
+        const total =
+            heating.reduce((a, b) => a + b, 0) +
+            hotWater.reduce((a, b) => a + b, 0);
+
+        const output = {
+            dates,
+            heating,
+            hotWater,
+            total,
+            // devMode에서는 비교 데이터가 없으니 카드 타입은 고정
+            // 이번주면 0(증가) 계열, 아니면 3(월평균 대비 증가) 계열로
+            cardType: isInThisWeek(endDate) ? 0 : 3,
+        };
+
+        log.info(`${lhd} << complete get boiler gas usage (devMode mock). range=[${startDate}~${endDate}]`);
+        return modules.ckpush4.makeResponse('success', output, tid);
+    }
+
+    // =========================================================
+    // ✅ 아래는 기존 로직 그대로 (DB 조회)
+    // =========================================================
     let queryInfo;
     try {
         queryInfo = await utils.postgresql.query('stat', `
@@ -263,7 +321,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const dates = [];
     const heating = [];
     const hotWater = [];
-    for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
+    for (let i = 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymmdd, heat_gas_usage_sum, hot_water_gas_usage_sum } = queryInfo.data.rows[i];
         dates.push(dayFormatter(yyyymmdd));
         heating.push(heat_gas_usage_sum);
