@@ -210,6 +210,7 @@ module.exports = async (ctx, src, packet, listener) => {
         month,
         deviceId,
         year,
+        devMode,   // ✅ 추가
     } = packet.dt;
 
     if (!deviceId || !year || !month || !week) {
@@ -229,6 +230,61 @@ module.exports = async (ctx, src, packet, listener) => {
     let lastWeekStartDt = `${lwStart}000000`;
     let lastWeekEndDt = `${lwEnd}235959`;
 
+    // =========================================================
+    // ✅ devMode=true면 mock 내려주고 종료 (DB 조회 안 함)
+    // =========================================================
+    if (devMode === true) {
+        const parseYmd = (yyyymmdd) => {
+            const y = Number(yyyymmdd.slice(0, 4));
+            const m = Number(yyyymmdd.slice(4, 6));
+            const d = Number(yyyymmdd.slice(6, 8));
+            return new Date(y, m - 1, d);
+        };
+
+        const formatYmd = (d) =>
+            d.getFullYear().toString() +
+            String(d.getMonth() + 1).padStart(2, '0') +
+            String(d.getDate()).padStart(2, '0');
+
+        const s = parseYmd(startDate);
+
+        const dates = [];
+        const heating = [];
+        const hotWater = [];
+
+        // 7일치 mock 생성 (일~토)
+        for (let i = 0; i < 7; i += 1) {
+            const dd = new Date(s);
+            dd.setDate(s.getDate() + i);
+            const ymd = formatYmd(dd);
+
+            dates.push(dayFormatter(ymd));
+
+            // 보기 좋은 고정 mock (원하면 랜덤으로 바꿔도 됨)
+            // 단위는 기존 쿼리가 "sum(value)"라서 숫자만 넣음
+            heating.push(2 + i);      // 2,3,4,5,6,7,8
+            hotWater.push(1 + (i % 3)); // 1,2,3,1,2,3,1
+        }
+
+        const total = heating.reduce((a, b) => a + b, 0) + hotWater.reduce((a, b) => a + b, 0);
+
+        const output = {
+            dates,
+            heating,
+            hotWater,
+            total,
+            // devMode에서는 비교 기준이 없으니 그냥 "증가" 카드로 고정하거나
+            // endDate가 이번 주면 8/9/10 중 하나, 아니면 11/12/13 중 하나로 고정
+            cardType: isInThisWeek(endDate) ? 8 : 11,
+        };
+
+        log.info(`${lhd} << complete get boiler combustion (devMode mock). range=[${startDate}~${endDate}]`);
+        return modules.ckpush4.makeResponse('success', output, tid);
+    }
+
+    // =========================================================
+    // ✅ 아래는 기존 로직 그대로 (DB 조회)
+    // =========================================================
     let queryInfo;
     try {
         queryInfo = await utils.postgresql.query('stat', `
@@ -263,7 +319,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const dates = [];
     const heating = [];
     const hotWater = [];
-    for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
+    for (let i = 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymmdd, heat_combustion_sum, hot_water_combustion_sum } = queryInfo.data.rows[i];
         dates.push(dayFormatter(yyyymmdd));
         heating.push(heat_combustion_sum);
