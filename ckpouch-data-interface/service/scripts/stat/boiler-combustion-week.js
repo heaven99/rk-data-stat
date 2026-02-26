@@ -231,7 +231,7 @@ module.exports = async (ctx, src, packet, listener) => {
     let lastWeekEndDt = `${lwEnd}235959`;
 
     // =========================================================
-    // ✅ devMode=true면 mock 내려주고 종료 (DB 조회 안 함)
+    // ✅ devMode=true면 "기간별로 다르게" + "동일 input이면 동일 output" mock
     // =========================================================
     if (devMode === true) {
         const parseYmd = (yyyymmdd) => {
@@ -246,6 +246,59 @@ module.exports = async (ctx, src, packet, listener) => {
             String(d.getMonth() + 1).padStart(2, '0') +
             String(d.getDate()).padStart(2, '0');
 
+        // ---- 1) seed 만들기 (입력값만 사용) ----
+        // (같은 input -> 같은 seed -> 같은 결과)
+        const seedStr = [
+            String(deviceId || ''),
+            String(year),
+            String(month),
+            String(week),
+            String(startDate),
+            String(endDate),
+        ].join('|');
+
+        // 간단한 문자열 해시 (FNV-1a 32bit)
+        const hash32 = (str) => {
+            let h = 2166136261;
+            for (let i = 0; i < str.length; i += 1) {
+                h ^= str.charCodeAt(i);
+                // h *= 16777619 (32bit overflow)
+                h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+            }
+            return h >>> 0;
+        };
+
+        // 결정적 PRNG: mulberry32
+        const mulberry32 = (a) => function () {
+            let t = (a += 0x6D2B79F5);
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+
+        const seed = hash32(seedStr);
+        const rand = mulberry32(seed);
+
+        // 정수/실수 유틸
+        const randInt = (min, max) => Math.floor(rand() * (max - min + 1)) + min;
+        const randFloat = (min, max) => rand() * (max - min) + min;
+
+        // ---- 2) "기간별 패턴" 파라미터를 seed 기반으로 고정 ----
+        // 주차마다 다르게 보이도록 amplitude/trend/base를 seed로 결정
+        const baseHeat = randInt(5, 40);          // 난방 기본치
+        const baseHot = randInt(3, 25);           // 온수 기본치
+        const ampHeat = randInt(5, 35);           // 난방 변동폭
+        const ampHot = randInt(3, 20);            // 온수 변동폭
+        const trendHeat = randFloat(-3, 3);       // 주간 추세(증가/감소)
+        const trendHot = randFloat(-2, 2);
+
+        // 요일별 가중치(일~토)도 seed로 고정
+        const weekdayW = [];
+        for (let i = 0; i < 7; i += 1) {
+            weekdayW.push(randFloat(0.8, 1.25));
+        }
+
+        // ---- 3) 7일치 생성 (일~토) ----
         const s = parseYmd(startDate);
 
         const dates = [];
@@ -260,10 +313,20 @@ module.exports = async (ctx, src, packet, listener) => {
 
             dates.push(dayFormatter(ymd));
 
-            // 보기 좋은 고정 mock (원하면 랜덤으로 바꿔도 됨)
-            // 단위는 기존 쿼리가 "sum(value)"라서 숫자만 넣음
-            heating.push(2 + i);      // 2,3,4,5,6,7,8
-            hotWater.push(1 + (i % 3)); // 1,2,3,1,2,3,1
+            // 사인파 + 요일 가중 + 추세 + 약간의 noise (모두 seed 기반 rand)
+            const phase = (i / 7) * Math.PI * 2;
+            const noiseHeat = randFloat(-3, 3);
+            const noiseHot = randFloat(-2, 2);
+
+            let heatVal = (baseHeat + ampHeat * (0.5 + 0.5 * Math.sin(phase)) + trendHeat * i + noiseHeat) * weekdayW[i];
+            let hotVal = (baseHot + ampHot * (0.5 + 0.5 * Math.cos(phase)) + trendHot * i + noiseHot) * weekdayW[i];
+
+            // 음수 방지 + 소수점 처리(너희 쿼리는 sum(value)이니까 정수로 내려도 OK)
+            heatVal = Math.max(0, Math.round(heatVal));
+            hotVal = Math.max(0, Math.round(hotVal));
+
+            heating.push(heatVal);
+            hotWater.push(hotVal);
         }
 
         const total = heating.reduce((a, b) => a + b, 0) + hotWater.reduce((a, b) => a + b, 0);
@@ -276,9 +339,12 @@ module.exports = async (ctx, src, packet, listener) => {
             // devMode에서는 비교 기준이 없으니 그냥 "증가" 카드로 고정하거나
             // endDate가 이번 주면 8/9/10 중 하나, 아니면 11/12/13 중 하나로 고정
             cardType: isInThisWeek(endDate) ? 8 : 11,
+            // 디버깅 필요하면 아래 주석 해제
+            // _mockSeed: seed,
+            // _mockKey: seedStr,
         };
 
-        log.info(`${lhd} << complete get boiler combustion (devMode mock). range=[${startDate}~${endDate}]`);
+        log.info(`${lhd} << complete get boiler combustion (devMode seeded mock). range=[${startDate}~${endDate}] seed=[${seed}]`);
         return modules.ckpush4.makeResponse('success', output, tid);
     }
 
