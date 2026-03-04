@@ -18,9 +18,9 @@ const sValues = {
         { key: 'ny', label: 'ny' },
         { key: 'temperature', label: 'temperature' },
         { key: 'humidity', label: 'humidity' },
-        { key: 'windSpeed', label: 'windSpeed' },
+        { key: 'windSpeed', label: 'wind_speed' },
         { key: 'pty', label: 'pty' },
-        { key: 'skyState', label: 'skyState' },
+        { key: 'skyState', label: 'sky_state' },
     ],
 };
 

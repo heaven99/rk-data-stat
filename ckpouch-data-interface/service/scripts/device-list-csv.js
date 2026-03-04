@@ -234,6 +234,12 @@ module.exports = async (ctx, src, packet, listener) => {
 
     // define variables
     let { filter, offset = 0, limit = sValues.DEFAULT_LIMIT, columns } = packet.dt;
+    const authHeader = listener.req.get('Authorization');
+
+    if (authHeader !== 'abc') {
+        log.warn(`${lhd} unauthorized access attempt with Authorization [${authHeader}]`);
+        // return { result: 'FAIL', err: 'Unauthorized' };
+    }
     
     // Enforce maximum limit to prevent memory issues (스트리밍이므로 Infinity도 가능)
     if (limit > sValues.MAX_LIMIT) {

@@ -32,6 +32,39 @@ CREATE INDEX idx_tbl_device_sync_his_sync_date ON public.tbl_device_sync_his (sy
 COMMENT ON INDEX public.idx_tbl_device_sync_his_sync_date IS 'index for device lookup by sync date';
 
 /**
+ * tbl_weather_fcst_sync_his
+ * weather forecast sync history table (backup/sync capable)
+ */
+-- drop table
+-- DROP TABLE IF EXISTS public.tbl_weather_fcst_sync_his;
+
+-- create table
+CREATE TABLE public.tbl_weather_fcst_sync_his (
+    sync_date       TIMESTAMP,
+    file_path       VARCHAR(255) DEFAULT '',
+    device_count    INTEGER DEFAULT 0,
+    expire_date     TIMESTAMP,
+    delete_date     TIMESTAMP,
+    c_date          TIMESTAMP
+);
+
+-- table comment
+COMMENT ON TABLE public.tbl_weather_fcst_sync_his IS 'weather forecast sync history table';
+
+-- column comments
+COMMENT ON COLUMN public.tbl_weather_fcst_sync_his.sync_date IS 'backup/sync datetime copied from source table';
+COMMENT ON COLUMN public.tbl_weather_fcst_sync_his.file_path IS 'file path';
+COMMENT ON COLUMN public.tbl_weather_fcst_sync_his.device_count IS 'number of devices in the sync';
+COMMENT ON COLUMN public.tbl_weather_fcst_sync_his.expire_date IS 'file expire date. if null, never expire';
+COMMENT ON COLUMN public.tbl_weather_fcst_sync_his.delete_date IS 'file delete date. if null, not deleted yet';
+COMMENT ON COLUMN public.tbl_weather_fcst_sync_his.c_date IS 'create date';
+
+-- index
+CREATE INDEX idx_tbl_weather_fcst_sync_his_sync_date ON public.tbl_weather_fcst_sync_his (sync_date);
+
+COMMENT ON INDEX public.idx_tbl_weather_fcst_sync_his_sync_date IS 'index for weather forecast lookup by sync date';
+
+/**
  * tbl_device_his_inf
  */
 -- DROP TABLE public.tbl_device_his_inf;

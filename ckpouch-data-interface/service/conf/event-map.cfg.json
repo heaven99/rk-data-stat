@@ -5,6 +5,7 @@
         { "event": "device-list-json",              "protocol": "LOAD", "script": "/scripts/device-list-json.js" },
         { "event": "device-list-csv",               "protocol": "LOAD", "script": "/scripts/device-list-csv.js" },
         { "event": "weather-sync",                  "protocol": "LOAD", "script": "/scripts/weather-sync-csv.js" },
+        { "event": "weather-list",                  "protocol": "LOAD", "script": "/scripts/weather-list-csv.js" },
         { "event": "stat-boiler-usage",             "protocol": "LOAD", "script": "/scripts/stat/boiler-usage.js" },
         { "event": "stat-boiler-combustion",        "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion.js" },
         { "event": "stat-boiler-combustion-week",   "protocol": "LOAD", "script": "/scripts/stat/boiler-combustion-week.js" },
