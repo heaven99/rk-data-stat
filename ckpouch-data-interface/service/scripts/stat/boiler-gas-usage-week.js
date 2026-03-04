@@ -210,6 +210,7 @@ module.exports = async (ctx, src, packet, listener) => {
         month,
         deviceId,
         year,
+        devMode, // ✅ 추가
     } = packet.dt;
 
     if (!deviceId || !year || !month || !week) {
@@ -229,6 +230,131 @@ module.exports = async (ctx, src, packet, listener) => {
     let lastWeekStartDt = `${lwStart}000000`;
     let lastWeekEndDt = `${lwEnd}235959`;
 
+    // =========================================================
+    // ✅ devMode=true면 "기간별로 다르게" + "동일 input이면 동일 output" mock
+    // =========================================================
+    if (devMode === true) {
+        const parseYmd = (yyyymmdd) => {
+            const y = Number(yyyymmdd.slice(0, 4));
+            const m = Number(yyyymmdd.slice(4, 6));
+            const d = Number(yyyymmdd.slice(6, 8));
+            return new Date(y, m - 1, d);
+        };
+
+        const formatYmd = (d) =>
+            d.getFullYear().toString() +
+            String(d.getMonth() + 1).padStart(2, '0') +
+            String(d.getDate()).padStart(2, '0');
+
+        // ---- 1) seed 만들기 (입력값만 사용) ----
+        const seedStr = [
+            String(deviceId || ''),
+            String(year),
+            String(month),
+            String(week),
+            String(startDate),
+            String(endDate),
+            'WEEK_GAS_USAGE',
+        ].join('|');
+
+        // FNV-1a 32bit
+        const hash32 = (str) => {
+            let h = 2166136261;
+            for (let i = 0; i < str.length; i += 1) {
+                h ^= str.charCodeAt(i);
+                h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+            }
+            return h >>> 0;
+        };
+
+        // mulberry32 PRNG
+        const mulberry32 = (a) => function () {
+            let t = (a += 0x6D2B79F5);
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+
+        const seed = hash32(seedStr);
+        const rand = mulberry32(seed);
+
+        const randInt = (min, max) => Math.floor(rand() * (max - min + 1)) + min;
+        const randFloat = (min, max) => rand() * (max - min) + min;
+
+        // ---- 2) "기간별 패턴" 파라미터를 seed 기반으로 고정 ----
+        // 가스 사용량은 combustion보다 조금 더 작은 스케일로 잡는 편이 보기 좋음
+        const baseHeat = randInt(2, 18);        // 난방 가스 기본치
+        const baseHot = randInt(1, 12);         // 온수 가스 기본치
+        const ampHeat = randInt(2, 16);         // 난방 변동폭
+        const ampHot = randInt(1, 10);          // 온수 변동폭
+        const trendHeat = randFloat(-1.2, 1.2); // 주간 추세
+        const trendHot = randFloat(-0.8, 0.8);
+
+        // 요일별 가중치(일~토) 고정
+        const weekdayW = [];
+        for (let i = 0; i < 7; i += 1) {
+            weekdayW.push(randFloat(0.85, 1.25));
+        }
+
+        const s = parseYmd(startDate);
+
+        const dates = [];
+        const heating = [];
+        const hotWater = [];
+
+        // ---- 3) 7일치 생성 (일~토) ----
+        for (let i = 0; i < 7; i += 1) {
+            const dd = new Date(s);
+            dd.setDate(s.getDate() + i);
+            const ymd = formatYmd(dd);
+
+            dates.push(dayFormatter(ymd));
+
+            // 부드러운 변동(사인/코사인) + 요일가중 + 추세 + 노이즈(모두 seed 기반)
+            const phase = (i / 7) * Math.PI * 2;
+            const noiseHeat = randFloat(-2.0, 2.0);
+            const noiseHot = randFloat(-1.5, 1.5);
+
+            let heatVal =
+                (baseHeat + ampHeat * (0.5 + 0.5 * Math.sin(phase)) + trendHeat * i + noiseHeat) *
+                weekdayW[i];
+
+            let hotVal =
+                (baseHot + ampHot * (0.5 + 0.5 * Math.cos(phase)) + trendHot * i + noiseHot) *
+                weekdayW[i];
+
+            // 음수 방지 + 정수화
+            heatVal = Math.max(0, Math.round(heatVal));
+            hotVal = Math.max(0, Math.round(hotVal));
+
+            heating.push(heatVal);
+            hotWater.push(hotVal);
+        }
+
+        const total =
+            heating.reduce((a, b) => a + b, 0) +
+            hotWater.reduce((a, b) => a + b, 0);
+
+        const output = {
+            dates,
+            heating,
+            hotWater,
+            total,
+            // devMode에서는 비교 데이터가 없으니 카드 타입은 고정
+            // 이번주면 0(증가) 계열, 아니면 3(월평균 대비 증가) 계열로
+            cardType: isInThisWeek(endDate) ? 0 : 3,
+            // 디버깅 필요하면 아래 주석 해제
+            // _mockSeed: seed,
+            // _mockKey: seedStr,
+        };
+
+        log.info(`${lhd} << complete get boiler gas usage (devMode seeded mock). range=[${startDate}~${endDate}] seed=[${seed}]`);
+        return modules.ckpush4.makeResponse('success', output, tid);
+    }
+
+    // =========================================================
+    // ✅ 아래는 기존 로직 그대로 (DB 조회)
+    // =========================================================
     let queryInfo;
     try {
         queryInfo = await utils.postgresql.query('stat', `
@@ -263,7 +389,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const dates = [];
     const heating = [];
     const hotWater = [];
-    for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
+    for (let i = 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymmdd, heat_gas_usage_sum, hot_water_gas_usage_sum } = queryInfo.data.rows[i];
         dates.push(dayFormatter(yyyymmdd));
         heating.push(heat_gas_usage_sum);

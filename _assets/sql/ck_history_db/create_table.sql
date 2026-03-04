@@ -174,6 +174,8 @@ CREATE TYPE enum_progress AS ENUM ('지시없음', '진행중', '완료', '실�
 CREATE TYPE enum_result AS ENUM ('시작전', '이상없음', '이상있음');
 CREATE TYPE enum_volume_phase AS ENUM ('0단계', '1단계', '2단계', '3단계', '4단계', '5단계');
 CREATE TYPE enum_lang_status AS ENUM ('한국어', '영어');
+CREATE TYPE enum_download_status AS ENUM ('다운로드 없음', '다운로드 중', '다운로드 완료', '다운로드 실패');
+CREATE TYPE enum_allow_status AS ENUM ('허가', '금지');
 
 /**
  * tbl_his_stg_parsed
@@ -312,7 +314,10 @@ CREATE TABLE public.tbl_his_inf_parsed (
    comm_state_diagnosis_state                       public.enum_result DEFAULT null,
    comm_state_diagnosis_error                       CHAR(2) DEFAULT null,
    voice_volume_phase                               public.enum_volume_phase DEFAULT null,
-   voice_lang_status                                public.enum_lang_status DEFAULT null
+   voice_lang_status                                public.enum_lang_status DEFAULT null,
+   ota_download_status                              public.enum_download_status DEFAULT null,
+   sw_version                                       CHAR(2) DEFAULT null,
+   smart_diagnosis_allow                            public.enum_allow_status DEFAULT null
 );
 
 -- add comment for column
@@ -402,6 +407,9 @@ COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_state          
 COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_error                    IS '통신 상태 진단 에러';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.voice_volume_phase                            IS '음성 볼륨 단계';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.voice_lang_status                             IS '음성 언어';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.ota_download_status                           IS 'OTA 다운로드 상태';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.sw_version                                    IS 'SW version (리모콘)';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.smart_diagnosis_allow                         IS '스마트 진단 허가 상태';
 
 -- add index
 CREATE INDEX idx_tbl_his_inf_parsed_serial_num_c_date ON public.tbl_his_inf_parsed (serial_num, c_date);

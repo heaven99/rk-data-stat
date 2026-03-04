@@ -25,6 +25,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const {
         deviceId,
         year,
+        devMode, // ✅ 추가
     } = packet.dt;
 
     if (!deviceId || !year) {
@@ -32,6 +33,115 @@ module.exports = async (ctx, src, packet, listener) => {
         return modules.ckpush4.makeResponse('wrong_request', null, tid);
     }
 
+    // =========================================================
+    // ✅ devMode=true면 "연도별로 다르게" + "동일 input이면 동일 output" mock
+    // =========================================================
+    if (devMode === true) {
+        // ---- 1) seed 만들기 (입력값만 사용) ----
+        const seedStr = [
+            String(deviceId || ''),
+            String(year),
+            'YEAR_COMBUSTION',
+        ].join('|');
+
+        // FNV-1a 32bit
+        const hash32 = (str) => {
+            let h = 2166136261;
+            for (let i = 0; i < str.length; i += 1) {
+                h ^= str.charCodeAt(i);
+                h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+            }
+            return h >>> 0;
+        };
+
+        // mulberry32 PRNG
+        const mulberry32 = (a) => function () {
+            let t = (a += 0x6D2B79F5);
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+
+        const seed = hash32(seedStr);
+        const rand = mulberry32(seed);
+
+        const randInt = (min, max) => Math.floor(rand() * (max - min + 1)) + min;
+        const randFloat = (min, max) => rand() * (max - min) + min;
+
+        // ---- 2) 연간 패턴 파라미터를 seed 기반으로 고정 ----
+        // 겨울 난방↑ / 여름 난방↓ 느낌을 위해 "계절성"을 넣음
+        const baseHeat = randInt(80, 220);     // 월 난방 기본
+        const baseHot = randInt(40, 140);      // 월 온수 기본
+        const ampHeat = randInt(40, 180);      // 난방 계절 변동폭
+        const ampHot = randInt(20, 120);       // 온수 변동폭
+        const noiseHeatAmp = randInt(5, 35);   // 월별 노이즈
+        const noiseHotAmp = randInt(3, 25);
+
+        // 연도별 전체 사용량이 좀 달라보이게 스케일도 고정
+        const yearScale = randFloat(0.85, 1.25);
+
+        // ---- 3) 12개월 생성 ----
+        const months = [];
+        const heating = [];
+        const hotWater = [];
+
+        // ✅ 올해면 현재월까지만 값 생성, 이후 월은 null 처리
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1; // 1~12
+
+        for (let m = 1; m <= 12; m += 1) {
+            const yyyymm = `${year}${String(m).padStart(2, '0')}`;
+            months.push(dayFormatter(yyyymm));
+
+            const isFutureMonth = (Number(year) === currentYear) && (m > currentMonth);
+
+            if (isFutureMonth) {
+                heating.push(null);
+                hotWater.push(null);
+                continue;
+            }
+
+            const theta = ((m - 1) / 12) * Math.PI * 2;
+
+            const seasonHeat = (0.5 + 0.5 * Math.cos(theta));
+            const seasonHot = (0.55 + 0.45 * Math.cos(theta));
+
+            const noiseHeat = randFloat(-noiseHeatAmp, noiseHeatAmp);
+            const noiseHot = randFloat(-noiseHotAmp, noiseHotAmp);
+
+            let heatVal = (baseHeat + ampHeat * seasonHeat + noiseHeat) * yearScale;
+            let hotVal = (baseHot + ampHot * seasonHot + noiseHot) * yearScale;
+
+            heatVal = Math.max(0, Math.round(heatVal));
+            hotVal = Math.max(0, Math.round(hotVal));
+
+            heating.push(heatVal);
+            hotWater.push(hotVal);
+        }
+
+        // total은 null 제외하고 합산
+        const sumNonNull = (arr) => arr.reduce((acc, v) => (typeof v === 'number' ? acc + v : acc), 0);
+        const totalVal = sumNonNull(heating) + sumNonNull(hotWater);
+
+        const output = {
+            months,
+            heating,
+            hotWater,
+            total: totalVal,
+            cardType: isThisYear(year) ? 14 : 15,
+            // 디버깅 필요하면 아래 주석 해제
+            // _mockSeed: seed,
+            // _mockKey: seedStr,
+        };
+
+        log.info(`${lhd} << complete get boiler combustion year (devMode seeded mock). year=[${year}] seed=[${seed}]`);
+        return modules.ckpush4.makeResponse('success', output, tid);
+    }
+
+    // =========================================================
+    // ✅ 아래는 기존 로직 그대로 (DB 조회)
+    // =========================================================
     const startDate = `${year}0101`;
     const endDate = `${year}1231`;
 
@@ -74,7 +184,7 @@ module.exports = async (ctx, src, packet, listener) => {
     const hotWater = [];
     const total = [];
 
-    for (let i= 0; i < queryInfo.data.rows.length; i += 1) {
+    for (let i = 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymm, heat_combustion_sum, hot_water_combustion_sum } = queryInfo.data.rows[i];
         months.push(dayFormatter(yyyymm));
         heating.push(heat_combustion_sum);
