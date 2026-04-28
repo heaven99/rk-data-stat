@@ -499,7 +499,6 @@ CREATE TABLE public.tbl_his_inf_parsed (
        ai_status                                        public.enum_on_off DEFAULT null,                                -- null 이 될 수 있음.
        heating_ai_status                                public.enum_on_off DEFAULT null,
        hotwater_ai_status                               public.enum_on_off DEFAULT null,
-       ota_status                                       public.enum_progress DEFAULT null,
        smart_diagnosis_status                           public.enum_progress DEFAULT null,
        progress_rate                                    CHAR(4) DEFAULT null,
        sensor_diagnosis_status                          public.enum_result DEFAULT null,
@@ -594,7 +593,6 @@ COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_th                         
 COMMENT ON COLUMN public.tbl_his_inf_parsed.ai_status                                     IS 'AI 상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.heating_ai_status                             IS '난방AI 상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.hotwater_ai_status                            IS '온수AI 상태';
-COMMENT ON COLUMN public.tbl_his_inf_parsed.ota_status                                    IS 'OTA 상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.smart_diagnosis_status                        IS '스마트진단 상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.progress_rate                                 IS '진행률';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.sensor_diagnosis_status                       IS '센서부 진단 상태';
