@@ -7,6 +7,8 @@
     "/api/device/list/json":                   { "POST": { "event": "device-list-json",                "desc": "Device list JSON" } },
     "/api/weather/sync":                       { "POST": { "event": "weather-sync",                    "desc": "Weather sync" } },
     "/api/weather/list":                       { "POST": { "event": "weather-list",                    "desc": "Weather list" } },
+    "/api/ai/recomm/heat":                     { "POST": { "event": "ai-recomm-heat",                  "desc": "AI recommend heat" } },
+    "/api/ai/recomm/hot-water":                { "POST": { "event": "ai-recomm-hot-water",             "desc": "AI recommend hot water" } },
     "/aiot/stat/get-boiler-usage":             { "POST": { "event": "stat-boiler-usage",               "desc": "Stat boiler usage" } },
     "/aiot/stat/get-boiler-combustion":        { "POST": { "event": "stat-boiler-combustion",          "desc": "Stat boiler combustion" } },
     "/aiot/stat/get-boiler-combustion/week":   { "POST": { "event": "stat-boiler-combustion-week",     "desc": "Stat boiler combustion weekly" } },
