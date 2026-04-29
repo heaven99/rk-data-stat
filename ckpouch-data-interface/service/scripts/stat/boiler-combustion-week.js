@@ -22,7 +22,7 @@ function getMonthWeekRange(year, month, week) {
 }
 
 function dayFormatter (yyyymmdd) {
-    return yyyymmdd.slice(0, 4) + '년 ' + yyyymmdd.slice(4, 6) + '월 ' + yyyymmdd.slice(6, 8) + '일 ' + '00:00:00';
+    return yyyymmdd.slice(0, 4) + '-' + yyyymmdd.slice(4, 6) + '-' + yyyymmdd.slice(6, 8) + ' 00:00:00';
 }
 
 function getCalendarMonthRange(year, month) {

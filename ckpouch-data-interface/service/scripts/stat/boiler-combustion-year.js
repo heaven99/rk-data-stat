@@ -1,5 +1,5 @@
 function dayFormatter (yyyymm) {
-    return yyyymm.slice(0, 4) + '년 ' + yyyymm.slice(4, 6) + '월 ';
+    return yyyymm.slice(0, 4) + '-' + yyyymm.slice(4, 6);
 }
 
 function isThisYear(year) {
