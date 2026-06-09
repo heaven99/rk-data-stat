@@ -517,6 +517,7 @@ CREATE TABLE public.tbl_his_inf_parsed (
        emission_block_error                             CHAR(2) DEFAULT null,
        comm_state_diagnosis_state                       public.enum_result DEFAULT null,
        comm_state_diagnosis_error                       CHAR(2) DEFAULT null,
+       gas_alarm_error                                  CHAR(2) DEFAULT null,
        voice_volume_phase                               public.enum_volume_phase DEFAULT null,
        voice_lang_status                                public.enum_lang_status DEFAULT null,
        smart_diagnosis_allow                            public.enum_allow_status DEFAULT null,
@@ -524,7 +525,7 @@ CREATE TABLE public.tbl_his_inf_parsed (
        temperature                                      DOUBLE PRECISION DEFAULT null,
        humidity                                         DOUBLE PRECISION DEFAULT null,
        sky_state                                        INTEGER DEFAULT null,
-       wind_speed                                       DOUBLE PRECISION DEFAULT null,
+       wind_speed                                       DOUBLE PRECISION DEFAULT null
 );
 
 -- add comment for column
@@ -611,6 +612,7 @@ COMMENT ON COLUMN public.tbl_his_inf_parsed.fan_error                           
 COMMENT ON COLUMN public.tbl_his_inf_parsed.emission_block_error                          IS '배기폐쇄 에러';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_state                    IS '통신 상태 진단 상태';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.comm_state_diagnosis_error                    IS '통신 상태 진단 에러';
+COMMENT ON COLUMN public.tbl_his_inf_parsed.gas_alarm_error                               IS '가스경보기 에러';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.voice_volume_phase                            IS '음성 볼륨 단계';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.voice_lang_status                             IS '음성 언어';
 COMMENT ON COLUMN public.tbl_his_inf_parsed.smart_diagnosis_allow                         IS '스마트 진단 허가 상태';
