@@ -1,3 +1,5 @@
+/* OBSOLETE: 2026-06-11 로그 확인 결과 호출 이력 없음. 사용처 없는 dead API. */
+
 module.exports = async (ctx, src, packet, listener) => {
     const { log, utils, modules } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;

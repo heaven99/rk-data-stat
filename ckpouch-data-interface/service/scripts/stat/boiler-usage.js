@@ -1,3 +1,5 @@
+/* OBSOLETE: 2026-06-11 로그 확인 결과 호출 이력 없음. 사용처 없는 dead API. */
+
 const sUtils = {
     /**
      * Date 객체를 YYYYMMDD 문자열로 변환
