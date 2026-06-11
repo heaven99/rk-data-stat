@@ -366,7 +366,7 @@ module.exports = async (ctx, src, packet, listener) => {
 
                 -- 2) HOT_WATER_GAS_USAGE (시간 누적) : value 합
                 sum(value) FILTER (WHERE data_type = 'HOT_WATER_GAS_USAGE') AS hot_water_gas_usage_sum
-            FROM public.tbl_stat_src2
+            FROM public.tbl_stat_src
             WHERE serial_num = $1
               AND stat_date >= $2
               AND stat_date <= $3
@@ -423,7 +423,7 @@ module.exports = async (ctx, src, packet, listener) => {
                     AND stat_date <= $6
                     ) AS monthly_total
 
-            FROM public.tbl_stat_src2
+            FROM public.tbl_stat_src
             WHERE serial_num = $7
               AND data_type IN ('HEATING_GAS_USAGE', 'HOT_WATER_GAS_USAGE');
         `, [lastWeekStartDt, lastWeekEndDt, startDt, endDt, `${calendarStartDate}000000`, `${calendarEndDate}235959`, deviceId], lhd);
