@@ -1,18 +1,14 @@
 module.exports = async (ctx, src, packet, listener) => {
-    const { log, utils, modules } = ctx;
+    const { log, utils } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
     const op = 'POST /aiot/energy/get-energy-monthly';
     const lhd = `[${src}:${tid}] ${op} -`;
-
-    if (listener.interface !== 'http') {
-        return { ckError: 'E001', ckMessage: 'Not supported interface' };
-    }
 
     const { serialNum, lastMonthStart, thisMonthStart } = packet.dt || {};
 
     if (!serialNum || !lastMonthStart || !thisMonthStart) {
         log.warn(`${lhd} << failed. missing required params. serialNum=[${serialNum}] lastMonthStart=[${lastMonthStart}] thisMonthStart=[${thisMonthStart}]`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
+        return { result: 'FAIL', err: 'missing required params' };
     }
 
     // '2026-06-01 00:00:00' → '20260601000000'
@@ -41,18 +37,18 @@ module.exports = async (ctx, src, packet, listener) => {
         `, [serialNum, lastMonthStr, thisMonthStr], lhd);
     } catch (e) {
         log.error(`${lhd} failed query. error: ${e.message}`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: e.message };
     }
 
     if (!queryInfo.succ) {
         log.warn(`${lhd} << failed query. err=[${queryInfo.err}]`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: queryInfo.err };
     }
 
     const row = queryInfo.data.rows[0] || {};
     const toInt = (v) => Number(v) || 0;
 
-    const output = {
+    const data = {
         lastMonth: {
             gas:        toInt(row.last_heating_gas)  + toInt(row.last_hotwater_gas),
             combustion: toInt(row.last_heating_comb) + toInt(row.last_hotwater_comb),
@@ -63,6 +59,6 @@ module.exports = async (ctx, src, packet, listener) => {
         },
     };
 
-    log.info(`${lhd} << complete. lastGas=[${output.lastMonth.gas}] lastCombustion=[${output.lastMonth.combustion}] thisGas=[${output.thisMonth.gas}] thisCombustion=[${output.thisMonth.combustion}]`);
-    return modules.ckpush4.makeResponse('success', output, tid);
+    log.info(`${lhd} << complete. lastGas=[${data.lastMonth.gas}] lastCombustion=[${data.lastMonth.combustion}] thisGas=[${data.thisMonth.gas}] thisCombustion=[${data.thisMonth.combustion}]`);
+    return { result: 'OK', data };
 };
