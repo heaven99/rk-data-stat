@@ -18,5 +18,6 @@
     "/aiot/stat/get-boiler-gas-usage/year":    { "POST": { "event": "stat-boiler-gas-usage-year",      "desc": "Stat boiler gas usage yearly" } },
     "/aiot/stat/get-boiler-setting-temp":      { "POST": { "event": "stat-boiler-setting-temp",        "desc": "Stat boiler setting temperature" } },
     "/aiot/stat/get-smart-briefing":           { "POST": { "event": "get-smart-briefing",              "desc": "Get smart briefing" } },
-    "/aiot/stat/get-briefing-stat":            { "POST": { "event": "stat-briefing-stat",               "desc": "Get briefing stat data (chart/gas/temp)" } }
+    "/aiot/stat/get-briefing-stat":            { "POST": { "event": "stat-briefing-stat",               "desc": "Get briefing stat data (chart/gas/temp)" } },
+    "/aiot/energy/get-energy-monthly":         { "POST": { "event": "energy-get-monthly",               "desc": "Get monthly energy usage (gas/combustion)" } }
 }

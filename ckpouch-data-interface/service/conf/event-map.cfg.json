@@ -17,6 +17,7 @@
         { "event": "stat-boiler-gas-usage-year",    "protocol": "LOAD", "script": "/scripts/stat/boiler-gas-usage-year.js" },
         { "event": "stat-boiler-setting-temp",      "protocol": "LOAD", "script": "/scripts/stat/boiler-setting-temp.js" },
         { "event": "get-smart-briefing",            "protocol": "LOAD", "script": "/scripts/get-smart-briefing.js"},
-        { "event": "stat-briefing-stat",             "protocol": "LOAD", "script": "/scripts/stat/briefing-stat.js" }
+        { "event": "stat-briefing-stat",             "protocol": "LOAD", "script": "/scripts/stat/briefing-stat.js" },
+        { "event": "energy-get-monthly",             "protocol": "LOAD", "script": "/scripts/energy/get-energy-monthly.js" }
     ]
 }
