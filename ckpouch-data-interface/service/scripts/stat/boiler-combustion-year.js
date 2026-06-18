@@ -187,8 +187,8 @@ module.exports = async (ctx, src, packet, listener) => {
     for (let i = 0; i < queryInfo.data.rows.length; i += 1) {
         const { yyyymm, heat_combustion_sum, hot_water_combustion_sum } = queryInfo.data.rows[i];
         months.push(dayFormatter(yyyymm));
-        heating.push(heat_combustion_sum);
-        hotWater.push(hot_water_combustion_sum);
+        heating.push(heat_combustion_sum ?? "0");
+        hotWater.push(hot_water_combustion_sum ?? "0");
         total.push(Number(heat_combustion_sum) + Number(hot_water_combustion_sum));
     }
 
