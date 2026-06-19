@@ -3,6 +3,7 @@
     "/api/device/list/sync/csv":               { "POST": { "event": "device-list-sync-csv",            "desc": "Device list sync CSV" } },
     "/api/device/list/sync/json":              { "POST": { "event": "device-list-sync-json",           "desc": "Device list sync JSON" } },
     "/api/device/list":                        { "POST": { "event": "device-list-csv",                 "desc": "Device list" } },
+    "/api/device/list/all":                    { "POST": { "event": "device-list-csv-all",             "desc": "Device list" } },
     "/api/device/list/csv":                    { "POST": { "event": "device-list-csv",                 "desc": "Device list CSV" } },
     "/api/device/list/json":                   { "POST": { "event": "device-list-json",                "desc": "Device list JSON" } },
     "/api/weather/sync":                       { "POST": { "event": "weather-sync",                    "desc": "Weather sync" } },

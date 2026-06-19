@@ -68,12 +68,15 @@ module.exports = async (ctx, src, packet, listener) => {
     }
 
     // define variables
-    const { sn, fcstDate } = packet.dt.filter;
+    const { sn, fcstDate, heatingMode } = packet.dt.filter;
 
     // set filter
     const selectAnalysisFilter = [{ col: 'serial_num', op: '=', val: sn }];
     if (fcstDate) {
         selectAnalysisFilter.push({ col: 'forecast_date', op: 'LIKE', val: `${fcstDate}%` });
+    }
+    if (typeof heatingMode === 'number') {
+        selectAnalysisFilter.push({ col: 'heating_mode', op: '=', val: heatingMode });
     }
 
     // select last sync date
