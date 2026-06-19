@@ -1,18 +1,14 @@
 module.exports = async (ctx, src, packet, listener) => {
-    const { log, utils, modules } = ctx;
+    const { log, utils } = ctx;
     const tid = packet?.hd?.tid || `${Date.now()}`;
     const op = 'POST /aiot/stat/get-briefing-stat';
     const lhd = `[${src}:${tid}] ${op} -`;
-
-    if (listener.interface !== 'http') {
-        return { ckError: 'E001', ckMessage: 'Not supported interface' };
-    }
 
     const { serialNum, startYmd, endYmd, lastStartYmd, lastEndYmd } = packet.dt || {};
 
     if (!serialNum || !startYmd || !endYmd) {
         log.warn(`${lhd} << failed. missing required params. serialNum=[${serialNum}] startYmd=[${startYmd}] endYmd=[${endYmd}]`);
-        return modules.ckpush4.makeResponse('wrong_request', null, tid);
+        return { result: 'FAIL', err: 'missing required params' };
     }
 
     const startStr = `${startYmd}000000`;
@@ -37,11 +33,11 @@ module.exports = async (ctx, src, packet, listener) => {
         `, [serialNum, startStr, endStr], lhd);
     } catch (e) {
         log.error(`${lhd} failed chart query. error: ${e.message}`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: e.message };
     }
     if (!chartQueryInfo.succ) {
         log.warn(`${lhd} << failed chart query. err=[${chartQueryInfo.err}]`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: chartQueryInfo.err };
     }
 
     // 2) 가스 사용량 합계
@@ -59,11 +55,11 @@ module.exports = async (ctx, src, packet, listener) => {
         `, [serialNum, startStr, endStr], lhd);
     } catch (e) {
         log.error(`${lhd} failed gas query. error: ${e.message}`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: e.message };
     }
     if (!gasQueryInfo.succ) {
         log.warn(`${lhd} << failed gas query. err=[${gasQueryInfo.err}]`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: gasQueryInfo.err };
     }
 
     // 3) 온도 평균
@@ -82,11 +78,11 @@ module.exports = async (ctx, src, packet, listener) => {
         `, [serialNum, startStr, endStr], lhd);
     } catch (e) {
         log.error(`${lhd} failed temp query. error: ${e.message}`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: e.message };
     }
     if (!tempQueryInfo.succ) {
         log.warn(`${lhd} << failed temp query. err=[${tempQueryInfo.err}]`);
-        return modules.ckpush4.makeResponse('failed', null, tid);
+        return { result: 'FAIL', err: tempQueryInfo.err };
     }
 
     const output = {
@@ -118,5 +114,5 @@ module.exports = async (ctx, src, packet, listener) => {
     }
 
     log.info(`${lhd} << complete`);
-    return modules.ckpush4.makeResponse('success', output, tid);
+    return { result: 'OK', data: output };
 };
