@@ -11,7 +11,8 @@
             "watch": false,
             "autorestart": false,
             "max_memory_restart": "500M",
-            "log_file": "/dev/null"
+            "log_file": "/dev/null",
+            "error_file": "/data/log/pm2/ckpouch-data-interface-err.log"
         }
     ]
 }
