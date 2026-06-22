@@ -1,5 +1,0 @@
-{
-    "event-map": [
-        { "event": "device-list-sync",    "protocol": "LOAD", "script": "/scripts/device-list-sync.js" }
-    ]
-}

@@ -1,5 +1,0 @@
-{
-    "scheduler-map": [
-        { "cron": "0 0 * * * *", "event": "device-list-sync" }
-    ]
-}
