@@ -434,16 +434,19 @@ module.exports = async (ctx, src, packet, listener) => {
     }
 
     const { last_week_total, target_week_total, monthly_total } = queryInfo.data.rows[0];
+    const thisTotal = target_week_total ?? 0;
+    const lastTotal = last_week_total ?? 0;
+
     if (isInThisWeek(endDate)) {
-        output.cardType = target_week_total > last_week_total ? 8
-            : target_week_total === last_week_total ? 10 : 9;
+        output.cardType = thisTotal > lastTotal ? 8
+            : thisTotal === lastTotal ? 10 : 9;
     } else {
-        const avg = monthly_total / getLastWeekOfMonth(year, month);
-        output.cardType = target_week_total > avg ? 11
-            : target_week_total === avg ? 13 : 12;
+        const avg = (monthly_total ?? 0) / getLastWeekOfMonth(year, month);
+        output.cardType = thisTotal > avg ? 11
+            : thisTotal === avg ? 13 : 12;
     }
 
-    output.total = target_week_total;
+    output.total = thisTotal;
 
     log.info(`${lhd} << complete get boiler combustion`);
     return modules.ckpush4.makeResponse('success', output, tid);
