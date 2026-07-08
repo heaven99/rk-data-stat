@@ -101,5 +101,6 @@ module.exports = async (ctx, src, packet, listener) => {
         date: Math.floor(sUtils.convertDateFormatToDate(selectAnalysisInfo.data[0].forecast_date).getTime() / 1000),
         mode: selectAnalysisInfo.data[0].heating_mode,
         list: selectAnalysisInfo.data[0].forecast_data,
+        topSlots: selectAnalysisInfo.data[0].top_slots || [],
     };
 };
