@@ -438,14 +438,15 @@ module.exports = async (ctx, src, packet, listener) => {
     }
 
     const { last_week_total, target_week_total, monthly_total } = queryInfo.data.rows[0];
-    const thisTotal = target_week_total ?? 0;
-    const lastTotal = last_week_total ?? 0;
+    // PostgreSQL SUM()은 bigint를 문자열로 반환하므로 반드시 Number로 변환해서 비교해야 한다.
+    const thisTotal = Number(target_week_total ?? 0);
+    const lastTotal = Number(last_week_total ?? 0);
 
     if (isInThisWeek(endDate)) {
         output.cardType = thisTotal > lastTotal ? 0
             : thisTotal === lastTotal ? 2 : 1;
     } else {
-        const avg = (monthly_total ?? 0) / getLastWeekOfMonth(year, month);
+        const avg = Number(monthly_total ?? 0) / getLastWeekOfMonth(year, month);
         output.cardType = thisTotal > avg ? 3
             : thisTotal === avg ? 5 : 4;
     }
